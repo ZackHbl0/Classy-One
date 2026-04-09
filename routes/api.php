@@ -1,0 +1,50 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+| These routes are loaded by the RouteServiceProvider and all will be
+| assigned to the "api" middleware group.
+|--------------------------------------------------------------------------
+*/
+
+// Public routes (no auth required)
+Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login']);
+Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register']);
+
+// Protected routes (require Sanctum token)
+Route::middleware('auth:sanctum')->group(function () {
+    // Auth
+    Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
+
+    // Dashboard
+    Route::post('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index']);
+
+    // Events
+    Route::post('/events', [\App\Http\Controllers\EventController::class, 'index']);
+    Route::post('/events/register', [\App\Http\Controllers\EventController::class, 'register']);
+
+    // Notifications
+    Route::post('/notifications', [\App\Http\Controllers\NotificationController::class, 'index']);
+    Route::post('/notifications/mark-read', [\App\Http\Controllers\NotificationController::class, 'markRead']);
+    Route::post('/test-notification', [\App\Http\Controllers\NotificationController::class, 'sendTestPush']);
+
+    // Payment
+    Route::post('/paiement', [\App\Http\Controllers\PaymentController::class, 'index']);
+
+    // Planning and Attendance
+    Route::post('/planning', [\App\Http\Controllers\PlanningController::class, 'index']);
+    Route::post('/attendance', [\App\Http\Controllers\AttendanceController::class, 'index']);
+
+    // Documents
+    Route::post('/documents', [\App\Http\Controllers\DocumentController::class, 'index']);
+    Route::post('/documents/create', [\App\Http\Controllers\DocumentController::class, 'store']);
+    Route::get('/documents/{id}/download', [\App\Http\Controllers\DocumentPdfController::class, 'download']);
+
+    // Profile
+    Route::post('/profile/update-password', [\App\Http\Controllers\ProfileController::class, 'updatePassword']);
+    Route::post('/profile/update-phone', [\App\Http\Controllers\ProfileController::class, 'updatePhone']);
+});

@@ -1,0 +1,40 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Planning;
+
+class PlanningController extends Controller
+{
+    public function index(Request $request)
+    {
+        $student = $request->user();
+
+        // Find the class ID for the student
+        $registre = \App\Models\Registre::where('idStudent', $student->idStudent)->first();
+        $classe_id = $registre ? $registre->Cla_id : null;
+
+        if (!$classe_id) {
+            return response()->json([
+                "success" => true,
+                "data" => []
+            ]);
+        }
+
+        // Global Class Schedule entries + Student specific entries
+        $planning = Planning::where(function($q) use ($student, $classe_id) {
+            $q->where('classe_id', $classe_id)
+              ->whereNull('idStudent')
+              ->orWhere('idStudent', $student->idStudent);
+        })
+        ->orderBy('date', 'asc')
+        ->orderBy('check_in', 'asc')
+        ->get(['id', 'date', 'check_in', 'check_out', 'status', 'fileUrl', 'weekNumber', 'matiere', 'salle', 'professeur_name']); 
+
+        return response()->json([
+            "success" => true,
+            "data" => $planning
+        ]);
+    }
+}
