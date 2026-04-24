@@ -22,5 +22,9 @@ class AppServiceProvider extends ServiceProvider
             // with ALL requests (including /livewire/update rewritten by Apache)
             config(['session.path' => '/']);
         }
+
+        \App\Models\Event::observe(\App\Observers\EventObserver::class);
+        \App\Models\Paiement::observe(\App\Observers\PaiementObserver::class);
+        \App\Models\DocumentRequest::observe(\App\Observers\DocumentRequestObserver::class);
     }
 }

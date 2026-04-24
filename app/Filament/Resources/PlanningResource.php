@@ -23,56 +23,66 @@ class PlanningResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Détails du Planning')
-                    ->schema([
-                        Forms\Components\Select::make('classe_id')
-                            ->label('Classe')
-                            ->options(function () {
-                                return \App\Models\Classe::all()
-                                    ->mapWithKeys(fn ($c) => [
-                                        $c->id => collect([$c->nom_classe ?? $c->name ?? $c->libelle ?? null])
-                                            ->filter()->first() ?? 'Classe #' . $c->id
-                                    ]);
-                            })
-                            ->searchable()
-                            ->required(),
-                        Forms\Components\DatePicker::make('date')
-                            ->required(),
-                        Forms\Components\TextInput::make('weekNumber')
-                            ->label('Numéro de semaine')
-                            ->numeric()
-                            ->required(),
-                        Forms\Components\Select::make('status')
-                            ->options([
-                                'Actif' => 'Actif',
-                                'Inactif' => 'Inactif',
-                                'Annulé' => 'Annulé',
-                                'Pending' => 'Pending',
-                                'Completed' => 'Completed',
-                            ])
-                            ->required(),
-                        Forms\Components\TimePicker::make('check_in')
-                            ->label('Heure de début'),
-                        Forms\Components\TimePicker::make('check_out')
-                            ->label('Heure de fin'),
-                        Forms\Components\TextInput::make('matiere')
-                            ->label('Matière')
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('professeur_name')
-                            ->label('Nom du Professeur')
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('salle')
-                            ->label('Salle')
-                            ->maxLength(255),
-                    ])->columns(2),
-                Forms\Components\Section::make('Fichier de Planning')
-                    ->schema([
-                        Forms\Components\FileUpload::make('fileUrl')
-                            ->label('Image ou PDF du Planning')
-                            ->directory('plannings')
-                            ->columnSpanFull(),
+                Forms\Components\Select::make('classe_id')
+                    ->label('Classe')
+                    ->options(function () {
+                        return \App\Models\Classe::all()
+                            ->mapWithKeys(fn($c) => [
+                                $c->id => collect([$c->nom_classe ?? $c->name ?? $c->libelle ?? null])
+                                    ->filter()->first() ?? 'Classe #' . $c->id
+                            ]);
+                    })
+                    ->searchable()
+                    ->required()
+                    ->columnSpanFull(),
+                Forms\Components\Select::make('jour')
+                    ->label('Jour')
+                    ->options([
+                        'Lundi' => 'Lundi',
+                        'Mardi' => 'Mardi',
+                        'Mercredi' => 'Mercredi',
+                        'Jeudi' => 'Jeudi',
+                        'Vendredi' => 'Vendredi',
+                        'Samedi' => 'Samedi',
+                        'Dimanche' => 'Dimanche',
                     ])
-            ]);
+                    ->required()
+                    ->columnSpanFull(),
+                Forms\Components\TextInput::make('matiere')
+                    ->label('Matière / Cours')
+                    ->placeholder('e.g. Algorithmique')
+                    ->maxLength(255)
+                    ->columnSpanFull(),
+                Forms\Components\TimePicker::make('check_in')
+                    ->label('Heure Début')
+                    ->required(),
+                Forms\Components\TimePicker::make('check_out')
+                    ->label('Heure Fin')
+                    ->required(),
+                Forms\Components\TextInput::make('salle')
+                    ->label('Salle')
+                    ->placeholder('Salle 101')
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('professeur_name')
+                    ->label('Intervenant')
+                    ->placeholder('Nom du prof')
+                    ->maxLength(255),
+                Forms\Components\Select::make('type')
+                    ->label('Type')
+                    ->options([
+                        'COURS' => 'COURS',
+                        'TD' => 'TD',
+                        'TP' => 'TP',
+                        'EXAMEN' => 'EXAMEN',
+                    ])
+                    ->default('COURS')
+                    ->required()
+                    ->columnSpanFull(),
+                Forms\Components\Hidden::make('status')
+                    ->default('Actif'),
+                Forms\Components\Hidden::make('weekNumber')
+                    ->default(fn() => \Carbon\Carbon::now()->weekOfYear),
+            ])->columns(2);
     }
 
     public static function table(Table $table): Table
@@ -81,7 +91,7 @@ class PlanningResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('classe_id')
                     ->label('Classe')
-                    ->getStateUsing(fn ($record) => optional($record->classe)->nom_classe
+                    ->getStateUsing(fn($record) => optional($record->classe)->nom_classe
                         ?? optional($record->classe)->name
                         ?? optional($record->classe)->libelle
                         ?? 'Classe #' . $record->classe_id)
@@ -102,7 +112,7 @@ class PlanningResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'Actif' => 'success',
                         'Inactif' => 'gray',
                         'Annulé' => 'danger',
@@ -112,8 +122,8 @@ class PlanningResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('classe_id')
                     ->label('Classe')
-                    ->options(fn () => \App\Models\Classe::all()
-                        ->mapWithKeys(fn ($c) => [
+                    ->options(fn() => \App\Models\Classe::all()
+                        ->mapWithKeys(fn($c) => [
                             $c->id => collect([$c->nom_classe ?? $c->name ?? $c->libelle ?? null])
                                 ->filter()->first() ?? 'Classe #' . $c->id
                         ])),

@@ -23,14 +23,14 @@ class PlanningController extends Controller
         }
 
         // Global Class Schedule entries + Student specific entries
-        $planning = Planning::where(function($q) use ($student, $classe_id) {
+        $planning = Planning::where(function ($q) use ($student, $classe_id) {
             $q->where('classe_id', $classe_id)
-              ->whereNull('idStudent')
-              ->orWhere('idStudent', $student->idStudent);
+                ->whereNull('idStudent')
+                ->orWhere('idStudent', $student->idStudent);
         })
-        ->orderBy('date', 'asc')
-        ->orderBy('check_in', 'asc')
-        ->get(['id', 'date', 'check_in', 'check_out', 'status', 'fileUrl', 'weekNumber', 'matiere', 'salle', 'professeur_name']); 
+            ->orderBy('date', 'asc')
+            ->orderBy('check_in', 'asc')
+            ->get(['id', 'date', 'jour', 'check_in', 'check_out', 'status', 'fileUrl', 'weekNumber', 'matiere', 'salle', 'professeur_name', 'type']);
 
         return response()->json([
             "success" => true,

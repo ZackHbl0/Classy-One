@@ -14,7 +14,14 @@ class Notification extends Model
         'message',
         'categorie',
         'pieceJointe',
+        'target_type',
+        'target_ids',
+        'target_summary',
         'created_at'
+    ];
+
+    protected $casts = [
+        'target_ids' => 'array',
     ];
 
     public function reads()

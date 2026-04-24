@@ -57,4 +57,22 @@ class ProfileController extends Controller
 
         return response()->json(["success" => true, "message" => "Téléphone mis à jour."]);
     }
+
+    public function updateFcmToken(Request $request)
+    {
+        $student = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'fcmToken' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(["success" => false, "message" => "Token manquant."]);
+        }
+
+        $student->fcmToken = $request->fcmToken;
+        $student->save();
+
+        return response()->json(["success" => true, "message" => "Token FCM mis à jour."]);
+    }
 }

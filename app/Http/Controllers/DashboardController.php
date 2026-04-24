@@ -31,12 +31,12 @@ class DashboardController extends Controller
         $total = $plannings->count();
 
         // Urgent notifications (unread)
-        $notifications = Notification::whereDoesntHave('reads', function($query) use ($student) {
-                $query->where('idStudent', $student->idStudent);
-            })
+        $notifications = Notification::whereDoesntHave('reads', function ($query) use ($student) {
+            $query->where('idStudent', $student->idStudent);
+        })
             ->orderBy('id', 'desc')
             ->limit(5)
-            ->get(['id', 'titre', 'message', 'categorie', 'pieceJointe']); 
+            ->get(['id', 'titre', 'message', 'categorie', 'pieceJointe']);
 
         // Map notification description to message 
         $mappedNotifications = $notifications->map(function ($n) {
@@ -56,23 +56,36 @@ class DashboardController extends Controller
         // Today's planning - using class-based logic
         $today = Carbon::today()->toDateString();
         $nowTime = Carbon::now()->toTimeString();
-        
-        $todayPlanningQuery = Planning::whereDate('date', $today);
-        
+        $dayNames = [
+            'Monday' => 'Lundi',
+            'Tuesday' => 'Mardi',
+            'Wednesday' => 'Mercredi',
+            'Thursday' => 'Jeudi',
+            'Friday' => 'Vendredi',
+            'Saturday' => 'Samedi',
+            'Sunday' => 'Dimanche'
+        ];
+        $todayDay = $dayNames[Carbon::now()->format('l')];
+
+        $todayPlanningQuery = Planning::where(function ($q) use ($today, $todayDay) {
+            $q->whereDate('date', $today)
+                ->orWhere('jour', $todayDay);
+        });
+
         if ($classe_id) {
-            $todayPlanningQuery->where(function($q) use ($student, $classe_id) {
+            $todayPlanningQuery->where(function ($q) use ($student, $classe_id) {
                 $q->where('idStudent', $student->idStudent)
-                  ->orWhere(function($sq) use ($classe_id) {
-                      $sq->where('classe_id', $classe_id)
-                         ->whereNull('idStudent');
-                  });
+                    ->orWhere(function ($sq) use ($classe_id) {
+                        $sq->where('classe_id', $classe_id)
+                            ->whereNull('idStudent');
+                    });
             });
         } else {
             $todayPlanningQuery->where('idStudent', $student->idStudent);
         }
 
         $todayPlanning = $todayPlanningQuery->orderBy('check_in', 'asc')
-            ->get(['id', 'check_in', 'check_out', 'status', 'total_hours', 'matiere', 'salle', 'professeur_name']); 
+            ->get(['id', 'check_in', 'check_out', 'status', 'total_hours', 'matiere', 'salle', 'professeur_name']);
 
         $todaySessions = [];
         foreach ($todayPlanning as $plan) {
@@ -99,7 +112,7 @@ class DashboardController extends Controller
         // Keep currentSession as the first "waiting" or "active" session for backward compat if needed
         $currentSession = !empty($todaySessions) ? $todaySessions[0] : null;
         // Try to find the actual current one
-        foreach($todaySessions as $s) {
+        foreach ($todaySessions as $s) {
             if ($s['is_current']) {
                 $currentSession = $s;
                 break;
@@ -115,7 +128,7 @@ class DashboardController extends Controller
         $latestPayment = Paiement::whereHas('registre', function ($q) use ($student) {
             $q->where('idStudent', $student->idStudent);
         })->orderBy('dateEcheance', 'desc')->first();
-        
+
         $paymentStatusText = $latestPayment ? ($latestPayment->statut === 'Payé' ? 'Validé' : 'En attente') : 'Aucun paiement';
 
         // Build Activity Feed
@@ -130,7 +143,7 @@ class DashboardController extends Controller
             $subtitleStr = $statusStr === 'approved' ? 'Votre document est prêt' : "Votre demande a été {$statusText}";
             $activity->push([
                 'type' => 'document',
-                'title' => 'Demande de '. $d->document_type,
+                'title' => 'Demande de ' . $d->document_type,
                 'subtitle' => $subtitleStr,
                 'date' => $date,
                 'date_val' => $date->timestamp,
@@ -203,7 +216,7 @@ class DashboardController extends Controller
                     "dernier_paiement" => $paymentStatusText,
                 ],
                 "urgentNotifications" => $mappedNotifications,
-                "today_sessions" => $todaySessions,
+                "planning" => $todaySessions,
                 "current_session" => $currentSession, // for backward compatibility
                 "nextEvent" => $nextEvent ? [
                     "id" => $nextEvent->id,

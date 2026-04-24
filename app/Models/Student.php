@@ -26,6 +26,11 @@ class Student extends Authenticatable
         'password',
     ];
 
+    public function getFullNameAttribute()
+    {
+        return $this->nom . ' ' . $this->prenom;
+    }
+
     public function registres()
     {
         return $this->hasMany(Registre::class, 'idStudent', 'idStudent');
@@ -56,6 +61,19 @@ class Student extends Authenticatable
             'id', // Foreign key on Classe table...
             'idStudent', // Local key on Student table...
             'Cla_id' // Local key on Registre table...
+        );
+    }
+
+    // A Student has many paiements through Registre
+    public function paiements()
+    {
+        return $this->hasManyThrough(
+            Paiement::class,
+            Registre::class,
+            'idStudent',
+            'Reg_id',
+            'idStudent',
+            'id'
         );
     }
 }

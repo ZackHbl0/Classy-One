@@ -34,14 +34,14 @@ class NotificationResource extends Resource
                         Forms\Components\Select::make('categorie')
                             ->label('Catégorie')
                             ->options([
+                                'Planning' => 'Planning',
                                 'Examen' => 'Examen',
-                                'Sortie' => 'Sortie',
-                                'Réunion' => 'Réunion',
-                                'Information' => 'Information',
-                                'Urgent' => 'Urgent',
+                                'Événement' => 'Événement',
                                 'Paiement' => 'Paiement',
+                                'Urgent' => 'Urgent',
+                                'Général' => 'Général',
                             ])
-                            ->default('Information')
+                            ->default('Général')
                             ->required(),
                         Forms\Components\Textarea::make('message')
                             ->label('Message')
@@ -49,14 +49,37 @@ class NotificationResource extends Resource
                             ->columnSpanFull(),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Cibles (Push Mobile)')
+                Forms\Components\Section::make('Cibles')
                     ->schema([
-                        Forms\Components\Select::make('target_students')
-                            ->label('Étudiants cibles (Laisser vide pour envoyer à TOUT LE MONDE)')
+                        Forms\Components\Radio::make('target_type')
+                            ->label('Type de cible')
+                            ->options([
+                                'all' => 'Tous les étudiants',
+                                'classes' => 'Par Classe',
+                                'students' => 'Par Étudiant',
+                            ])
+                            ->default('all')
+                            ->live()
+                            ->required(),
+
+                        Forms\Components\Select::make('target_classes')
+                            ->label('Sélectionner les classes')
                             ->multiple()
-                            ->options(Student::pluck('nom', 'idStudent')->toArray())
-                            ->columnSpanFull(),
-                    ])->visibleOn('create'), // Only show targeting when creating a new push!
+                            ->options(\App\Models\Classe::pluck('nomClasse', 'id')->toArray())
+                            ->visible(fn(Forms\Get $get) => $get('target_type') === 'classes')
+                            ->required(fn(Forms\Get $get) => $get('target_type') === 'classes')
+                            ->dehydrated(false)
+                            ->searchable(),
+
+                        Forms\Components\Select::make('target_students')
+                            ->label('Sélectionner les étudiants')
+                            ->multiple()
+                            ->options(\App\Models\Student::all()->mapWithKeys(fn($s) => [$s->idStudent => $s->full_name])->toArray())
+                            ->visible(fn(Forms\Get $get) => $get('target_type') === 'students')
+                            ->required(fn(Forms\Get $get) => $get('target_type') === 'students')
+                            ->dehydrated(false)
+                            ->searchable(),
+                    ]),
             ]);
     }
 
@@ -68,20 +91,26 @@ class NotificationResource extends Resource
                     ->label('Titre')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('target_summary')
+                    ->label('Cible')
+                    ->badge()
+                    ->color('gray'),
                 Tables\Columns\TextColumn::make('categorie')
                     ->label('Catégorie')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'Urgent' => 'danger',
-                        'Examen' => 'warning',
                         'Paiement' => 'warning',
-                        'Information' => 'info',
-                        default => 'primary',
+                        'Examen' => 'warning',
+                        'Planning' => 'info',
+                        'Événement' => 'primary',
+                        'Général' => 'gray',
+                        default => 'gray',
                     })
                     ->sortable(),
                 Tables\Columns\TextColumn::make('message')
                     ->label('Message')
-                    ->limit(50),
+                    ->limit(30),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Date d\'envoi')
                     ->dateTime()
@@ -89,14 +118,21 @@ class NotificationResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
+                Tables\Filters\SelectFilter::make('target_type')
+                    ->label('Type de cible')
+                    ->options([
+                        'all' => 'Tous',
+                        'classes' => 'Classes',
+                        'students' => 'Étudiants',
+                    ]),
                 Tables\Filters\SelectFilter::make('categorie')
                     ->options([
+                        'Planning' => 'Planning',
                         'Examen' => 'Examen',
-                        'Sortie' => 'Sortie',
-                        'Réunion' => 'Réunion',
-                        'Information' => 'Information',
-                        'Urgent' => 'Urgent',
+                        'Événement' => 'Événement',
                         'Paiement' => 'Paiement',
+                        'Urgent' => 'Urgent',
+                        'Général' => 'Général',
                     ])
             ])
             ->actions([
@@ -114,6 +150,13 @@ class NotificationResource extends Resource
     {
         return [
             //
+        ];
+    }
+
+    public static function getWidgets(): array
+    {
+        return [
+            NotificationResource\Widgets\NotificationFormWidget::class,
         ];
     }
 

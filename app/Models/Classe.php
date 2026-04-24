@@ -10,10 +10,15 @@ class Classe extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'nom_classe',
-        'filiere',
-        'niveau'
+        'Ann_id',
+        'Not_id',
+        'nomClasse'
     ];
+
+    public function anneescolaire()
+    {
+        return $this->belongsTo(Anneescolaire::class, 'Ann_id', 'id');
+    }
 
     public function registres()
     {
