@@ -15,7 +15,8 @@ class Event extends Model
         'date_evenement',
         'lieu',
         'pieceJointe',
-        'categorie'
+        'categorie',
+        'prix'
     ];
 
     public function registrations()

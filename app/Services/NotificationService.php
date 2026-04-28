@@ -54,6 +54,7 @@ class NotificationService
             'target_type' => $targetType,
             'target_ids' => $targetIds,
             'target_summary' => $targetSummary,
+            'idStudent' => ($targetType === 'students' && count($targetIds ?? []) === 1) ? $targetIds[0] : null,
         ]);
 
         // 2. Prepare FCM Tokens

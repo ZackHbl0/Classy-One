@@ -31,14 +31,15 @@ class RegistrationsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('id')
+            ->recordTitleAttribute('idStudent')
+            ->defaultSort('registered_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('student.nom')
                     ->label('Étudiant')
-                    ->formatStateUsing(fn ($record) => optional($record->student)->nom . ' ' . optional($record->student)->prenom)
+                    ->formatStateUsing(fn($record) => optional($record->student)->nom . ' ' . optional($record->student)->prenom)
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
+                Tables\Columns\TextColumn::make('registered_at')
                     ->label('Date d\'inscription')
                     ->dateTime()
                     ->sortable(),

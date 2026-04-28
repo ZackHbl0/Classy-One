@@ -15,13 +15,30 @@ class NotificationController extends Controller
     public function index(Request $request)
     {
         $student = $request->user();
+        $studentClassIds = $student->registres->pluck('Cla_id')->map(fn($id) => (string) $id)->toArray();
 
-        // Need the exact output shape of legacy get_notifications.php
         $notifications = DB::table('notification as n')
             ->select('n.id', 'n.titre', 'n.message', 'n.categorie', 'n.pieceJointe')
-            ->leftJoin('notification_read as nr', function($join) use ($student) {
+            ->leftJoin('notification_read as nr', function ($join) use ($student) {
                 $join->on('nr.idNotification', '=', 'n.id')
-                     ->where('nr.idStudent', '=', $student->idStudent);
+                    ->where('nr.idStudent', '=', $student->idStudent);
+            })
+            ->where(function ($query) use ($student, $studentClassIds) {
+                // 1. All Students
+                $query->where('n.target_type', 'all')
+                    // 2. Specific Student
+                    ->orWhere(function ($q) use ($student) {
+                        $q->where('n.target_type', 'students')
+                            ->where('n.idStudent', $student->idStudent);
+                    });
+
+                // 3. Specific Classes
+                foreach ($studentClassIds as $classId) {
+                    $query->orWhere(function ($q) use ($classId) {
+                        $q->where('n.target_type', 'classes')
+                            ->whereJsonContains('n.target_ids', $classId);
+                    });
+                }
             })
             ->addSelect(DB::raw('CASE WHEN nr.idStudent IS NOT NULL THEN 1 ELSE 0 END as is_read'))
             ->orderBy('n.id', 'desc')
@@ -61,7 +78,7 @@ class NotificationController extends Controller
             $unreadIds = DB::table('notification as n')
                 ->leftJoin('notification_read as nr', function ($join) use ($student) {
                     $join->on('nr.idNotification', '=', 'n.id')
-                         ->where('nr.idStudent', '=', $student->idStudent);
+                        ->where('nr.idStudent', '=', $student->idStudent);
                 })
                 ->whereNull('nr.idStudent')
                 ->pluck('n.id');
@@ -92,7 +109,7 @@ class NotificationController extends Controller
 
         if (!$student || empty($student->fcmToken)) {
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'message' => 'Étudiant introuvable ou aucun token FCM configuré.'
             ], 404);
         }
@@ -105,12 +122,12 @@ class NotificationController extends Controller
             $messaging->send($message);
 
             return response()->json([
-                'success' => true, 
+                'success' => true,
                 'message' => 'Notification Push Firebase envoyée avec succès!'
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'message' => 'Erreur Firebase: ' . $e->getMessage()
             ], 500);
         }

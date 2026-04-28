@@ -8,6 +8,8 @@ class EventRegistration extends Model
 {
     protected $table = 'event_registration';
     public $timestamps = false;
+    protected $primaryKey = 'idStudent';
+    public $incrementing = false;
 
     protected $fillable = [
         'idStudent',

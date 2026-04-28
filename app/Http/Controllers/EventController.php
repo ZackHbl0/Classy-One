@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use App\Models\Event;
 use App\Models\EventRegistration;
 
@@ -14,7 +15,7 @@ class EventController extends Controller
         $category = $request->input('category', 'Tout');
 
         $query = Event::query();
-        
+
         if ($category !== 'Tout') {
             $query->where('categorie', $category);
         }
@@ -34,7 +35,7 @@ class EventController extends Controller
                 "description" => $e->description,
                 "date_event" => $e->date_evenement,
                 "location" => $e->lieu ?? '',
-                "image_url" => $e->pieceJointe,
+                "image_url" => $e->pieceJointe ? Storage::disk('public')->url($e->pieceJointe) : null,
                 "category" => $e->categorie ?? 'Académique',
                 "isConfirmed" => $isRegistered,
                 "participants" => $participantCount,
@@ -50,7 +51,7 @@ class EventController extends Controller
     public function register(Request $request)
     {
         $student = $request->user();
-        
+
         // Handle legacy PHP param names
         $idEvent = $request->input('idNotification', $request->input('idEvent', 0));
 

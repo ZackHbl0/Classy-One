@@ -17,6 +17,7 @@ class Notification extends Model
         'target_type',
         'target_ids',
         'target_summary',
+        'idStudent',
         'created_at'
     ];
 

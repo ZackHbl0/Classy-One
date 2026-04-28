@@ -50,7 +50,10 @@ class EventResource extends Resource
                     ->schema([
                         Forms\Components\FileUpload::make('pieceJointe')
                             ->label('Document / Image')
+                            ->disk('public')
                             ->directory('events')
+                            ->image()
+                            ->imagePreviewHeight('200')
                             ->columnSpanFull(),
                     ])
             ]);

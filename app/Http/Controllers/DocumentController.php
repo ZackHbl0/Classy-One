@@ -16,13 +16,16 @@ class DocumentController extends Controller
             ->orderBy('request_date', 'desc')
             ->get([
                 'id', 'document_type', 'reason', 'urgency', 'status', 
-                'request_date', 'ready_date', 'admin_note'
+                'request_date', 'ready_date', 'admin_note', 'file_url'
             ]);
 
         // Map strictly matching PHP behavior
         $mapped = $requests->map(function ($r) {
             $data = $r->toArray();
             $data['id'] = (int) $data['id'];
+            // Alias fields for Flutter as requested by the user
+            $data['admin_message'] = $r->admin_note;
+            $data['pdf_url'] = $r->file_url;
             return $data;
         });
 

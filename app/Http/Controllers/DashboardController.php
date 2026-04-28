@@ -30,10 +30,31 @@ class DashboardController extends Controller
         $conges = $plannings->where('status', 'Leaves')->count();
         $total = $plannings->count();
 
-        // Urgent notifications (unread)
+        // Find the class ID for the student for filtering
+        $registre = \App\Models\Registre::where('idStudent', $student->idStudent)->first();
+        $classe_id = $registre ? (string)$registre->Cla_id : null;
+
+        // Urgent notifications (unread + filtered)
         $notifications = Notification::whereDoesntHave('reads', function ($query) use ($student) {
             $query->where('idStudent', $student->idStudent);
         })
+            ->where(function ($query) use ($student, $classe_id) {
+                // 1. All Students
+                $query->where('target_type', 'all')
+                    // 2. Specific Student
+                    ->orWhere(function ($q) use ($student) {
+                        $q->where('target_type', 'students')
+                            ->where('idStudent', $student->idStudent);
+                    });
+
+                // 3. Specific Classes
+                if ($classe_id) {
+                    $query->orWhere(function ($q) use ($classe_id) {
+                        $q->where('target_type', 'classes')
+                            ->whereJsonContains('target_ids', $classe_id);
+                    });
+                }
+            })
             ->orderBy('id', 'desc')
             ->limit(5)
             ->get(['id', 'titre', 'message', 'categorie', 'pieceJointe']);
