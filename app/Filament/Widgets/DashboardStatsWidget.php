@@ -34,6 +34,10 @@ class DashboardStatsWidget extends Widget
         // Count non-paid / overdue payments
         $overduePayments = Paiement::where('statut', '!=', 'Payé')->count();
 
+        // 5. Total Revenue & Pending Payments
+        $totalRevenue = Paiement::where('statut', 'Payé')->sum('montant');
+        $pendingPaymentsSum = Paiement::where('statut', '!=', 'Payé')->sum('montant');
+
         return [
             'totalStudents' => $totalStudents,
             'studentsGrowth' => '+12 this month', // Mock growth since timestamps might not exist
@@ -42,6 +46,8 @@ class DashboardStatsWidget extends Widget
             'upcomingEvents' => $upcomingEvents,
             'nextEventDate' => $nextEvent ? \Carbon\Carbon::parse($nextEvent->date_evenement)->format('M d') : 'None',
             'overduePayments' => $overduePayments,
+            'totalRevenue' => $totalRevenue,
+            'pendingPaymentsSum' => $pendingPaymentsSum,
         ];
     }
 }

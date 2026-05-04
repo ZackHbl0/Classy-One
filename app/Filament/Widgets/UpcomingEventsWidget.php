@@ -30,6 +30,9 @@ class UpcomingEventsWidget extends BaseWidget
                     ->label('Date')
                     ->date('M d, Y'),
             ])
+            ->emptyStateHeading('No upcoming events')
+            ->emptyStateDescription("There are no events scheduled in the near future.")
+            ->emptyStateIcon('heroicon-o-face-smile')
             ->paginated(false);
     }
 }

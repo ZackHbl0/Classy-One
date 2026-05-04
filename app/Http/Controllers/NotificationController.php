@@ -52,7 +52,7 @@ class NotificationController extends Controller
                 'message' => $n->message,
                 'categorie' => $n->categorie,
                 'pieceJointe' => $n->pieceJointe,
-                'is_read' => (int) $n->is_read
+                'isRead' => (bool) $n->is_read
             ];
         });
 

@@ -31,11 +31,9 @@ class EventResource extends Resource
                         Forms\Components\Select::make('categorie')
                             ->label('Catégorie')
                             ->options([
-                                'Examen' => 'Examen',
-                                'Sortie' => 'Sortie',
-                                'Réunion' => 'Réunion',
-                                'Information' => 'Information',
-                                'Autre' => 'Autre',
+                                'Académique' => 'Académique',
+                                'Sports' => 'Sports',
+                                'Clubs' => 'Clubs',
                             ])
                             ->required(),
                         Forms\Components\DateTimePicker::make('date_evenement')
@@ -81,11 +79,9 @@ class EventResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('categorie')
                     ->options([
-                        'Examen' => 'Examen',
-                        'Sortie' => 'Sortie',
-                        'Réunion' => 'Réunion',
-                        'Information' => 'Information',
-                        'Autre' => 'Autre',
+                        'Académique' => 'Académique',
+                        'Sports' => 'Sports',
+                        'Clubs' => 'Clubs',
                     ])
             ])
             ->actions([

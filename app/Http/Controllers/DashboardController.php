@@ -32,7 +32,7 @@ class DashboardController extends Controller
 
         // Find the class ID for the student for filtering
         $registre = \App\Models\Registre::where('idStudent', $student->idStudent)->first();
-        $classe_id = $registre ? (string)$registre->Cla_id : null;
+        $classe_id = $registre ? (string) $registre->Cla_id : null;
 
         // Urgent notifications (unread + filtered)
         $notifications = Notification::whereDoesntHave('reads', function ($query) use ($student) {
@@ -43,9 +43,9 @@ class DashboardController extends Controller
                 $query->where('target_type', 'all')
                     // 2. Specific Student
                     ->orWhere(function ($q) use ($student) {
-                        $q->where('target_type', 'students')
-                            ->where('idStudent', $student->idStudent);
-                    });
+                    $q->where('target_type', 'students')
+                        ->where('idStudent', $student->idStudent);
+                });
 
                 // 3. Specific Classes
                 if ($classe_id) {
@@ -66,7 +66,8 @@ class DashboardController extends Controller
                 'titre' => $n->titre,
                 'message' => $n->message,
                 'categorie' => $n->categorie,
-                'pieceJointe' => $n->pieceJointe
+                'pieceJointe' => $n->pieceJointe,
+                'isRead' => false
             ];
         });
 
