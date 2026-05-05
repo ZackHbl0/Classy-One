@@ -25,7 +25,14 @@ class DocumentController extends Controller
             $data['id'] = (int) $data['id'];
             // Alias fields for Flutter as requested by the user
             $data['admin_message'] = $r->admin_note;
-            $data['pdf_url'] = $r->file_url;
+            
+            // Ensure we return a full absolute URL for the PDF
+            if ($r->file_url) {
+                $data['pdf_url'] = url(\Illuminate\Support\Facades\Storage::url($r->file_url));
+            } else {
+                $data['pdf_url'] = null;
+            }
+            
             return $data;
         });
 

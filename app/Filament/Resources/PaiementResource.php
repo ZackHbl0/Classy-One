@@ -29,7 +29,7 @@ class PaiementResource extends Resource
                             ->label('Étudiant / Inscription')
                             ->options(function () {
                                 return \App\Models\Registre::with('student')->get()
-                                    ->mapWithKeys(fn ($r) => [
+                                    ->mapWithKeys(fn($r) => [
                                         $r->id => ($r->student->nom ?? '?') . ' ' . ($r->student->prenom ?? '') . ' (Reg#' . $r->id . ')'
                                     ]);
                             })
@@ -66,7 +66,7 @@ class PaiementResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('registre.student.nom')
                     ->label('Étudiant')
-                    ->formatStateUsing(fn ($record) => $record->registre->student->nom . ' ' . $record->registre->student->prenom)
+                    ->formatStateUsing(fn($record) => $record->registre->student->nom . ' ' . $record->registre->student->prenom)
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('montant')
@@ -79,7 +79,7 @@ class PaiementResource extends Resource
                 Tables\Columns\TextColumn::make('statut')
                     ->label('Statut')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'Payé' => 'success',
                         'En attente' => 'warning',
                         'Non Payé' => 'danger',

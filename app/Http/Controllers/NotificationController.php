@@ -18,7 +18,7 @@ class NotificationController extends Controller
         $studentClassIds = $student->registres->pluck('Cla_id')->map(fn($id) => (string) $id)->toArray();
 
         $notifications = DB::table('notification as n')
-            ->select('n.id', 'n.titre', 'n.message', 'n.categorie', 'n.pieceJointe')
+            ->select('n.id', 'n.titre', 'n.message', 'n.categorie', 'n.pieceJointe', 'n.created_at')
             ->leftJoin('notification_read as nr', function ($join) use ($student) {
                 $join->on('nr.idNotification', '=', 'n.id')
                     ->where('nr.idStudent', '=', $student->idStudent);
@@ -26,17 +26,24 @@ class NotificationController extends Controller
             ->where(function ($query) use ($student, $studentClassIds) {
                 // 1. All Students
                 $query->where('n.target_type', 'all')
-                    // 2. Specific Student
+                    // 2. Specific Student(s)
                     ->orWhere(function ($q) use ($student) {
                         $q->where('n.target_type', 'students')
-                            ->where('n.idStudent', $student->idStudent);
+                            ->where(function ($sq) use ($student) {
+                                $sq->where('n.idStudent', $student->idStudent)
+                                    ->orWhereJsonContains('n.target_ids', (string) $student->idStudent)
+                                    ->orWhereJsonContains('n.target_ids', (int) $student->idStudent);
+                            });
                     });
 
                 // 3. Specific Classes
                 foreach ($studentClassIds as $classId) {
                     $query->orWhere(function ($q) use ($classId) {
                         $q->where('n.target_type', 'classes')
-                            ->whereJsonContains('n.target_ids', $classId);
+                            ->where(function ($sq) use ($classId) {
+                                $sq->whereJsonContains('n.target_ids', (string) $classId)
+                                    ->orWhereJsonContains('n.target_ids', (int) $classId);
+                            });
                     });
                 }
             })
@@ -52,7 +59,8 @@ class NotificationController extends Controller
                 'message' => $n->message,
                 'categorie' => $n->categorie,
                 'pieceJointe' => $n->pieceJointe,
-                'isRead' => (bool) $n->is_read
+                'isRead' => (bool) $n->is_read,
+                'createdAt' => \Carbon\Carbon::parse($n->created_at)->toIso8601String()
             ];
         });
 
@@ -97,6 +105,29 @@ class NotificationController extends Controller
         ]);
     }
 
+    public function destroy($id)
+    {
+        $notification = Notification::find($id);
+
+        if (!$notification) {
+            return response()->json([
+                "success" => false,
+                "message" => "Notification introuvable."
+            ], 404);
+        }
+
+        // Delete associated read records first
+        NotificationRead::where('idNotification', $id)->delete();
+        
+        // Delete the notification
+        $notification->delete();
+
+        return response()->json([
+            "success" => true,
+            "message" => "Notification supprimée définitivement."
+        ]);
+    }
+
     public function sendTestPush(Request $request)
     {
         $request->validate([
@@ -124,6 +155,61 @@ class NotificationController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Notification Push Firebase envoyée avec succès!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur Firebase: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function sendDirectPush($matricule)
+    {
+        $student = Student::where('matricule', $matricule)->first();
+
+        if (!$student || empty($student->fcmToken)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Étudiant introuvable ou aucun token FCM configuré pour ce matricule.'
+            ], 404);
+        }
+
+        try {
+            $messaging = app('firebase.messaging');
+            $message = CloudMessage::withTarget('token', $student->fcmToken)
+                ->withNotification(FirebaseNotification::create(
+                    "Test de Notification 🚀", 
+                    "Félicitations ! Si vous voyez ceci, votre configuration Push fonctionne parfaitement."
+                ))
+                ->withData([
+                    'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                    'id' => '0',
+                    'type' => 'Test',
+                ])
+                ->withAndroidConfig([
+                    'priority' => 'high',
+                    'notification' => [
+                        'channel_id' => 'high_importance_channel',
+                        'sound' => 'default',
+                        'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                        'icon' => 'ic_launcher',
+                    ],
+                ])
+                ->withApnsConfig([
+                    'payload' => [
+                        'aps' => [
+                            'content-available' => 1,
+                            'sound' => 'default',
+                        ],
+                    ],
+                ]);
+
+            $messaging->send($message);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Notification de test envoyée au matricule $matricule avec succès !"
             ]);
         } catch (\Exception $e) {
             return response()->json([

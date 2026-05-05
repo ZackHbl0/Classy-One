@@ -20,6 +20,8 @@ class Student extends Authenticatable
         'password',
         'telephone',
         'fcmToken',
+        'event_notifications',
+        'payment_notifications',
     ];
 
     protected $hidden = [

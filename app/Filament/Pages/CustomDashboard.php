@@ -12,6 +12,11 @@ class CustomDashboard extends \Filament\Pages\Dashboard
         return 'Dashboard';
     }
 
+    public function getSubheading(): ?string
+    {
+        return 'Overview of OSBT Notify activity';
+    }
+
     /**
      * @return int | string | array<string, int | string | null>
      */

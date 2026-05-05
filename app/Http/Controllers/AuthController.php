@@ -39,15 +39,15 @@ class AuthController extends Controller
 
         // Check if the password is valid
         $passwordMatches = false;
-        
+
         // 1. Check if it's already a bcrypt hash
         if (Hash::check($request->password, $student->password)) {
             $passwordMatches = true;
-        } 
+        }
         // 2. Fallback: Check if it's still plain text (graceful migration)
         else if ($student->password === $request->password) {
             $passwordMatches = true;
-            
+
             // Automatically upgrade plain-text password to bcrypt for future logins
             $student->password = Hash::make($request->password);
             $student->save();

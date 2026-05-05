@@ -68,7 +68,6 @@ class NotificationResource extends Resource
                             ->options(\App\Models\Classe::pluck('nomClasse', 'id')->toArray())
                             ->visible(fn(Forms\Get $get) => $get('target_type') === 'classes')
                             ->required(fn(Forms\Get $get) => $get('target_type') === 'classes')
-                            ->dehydrated(false)
                             ->searchable(),
 
                         Forms\Components\Select::make('target_students')
@@ -77,7 +76,6 @@ class NotificationResource extends Resource
                             ->options(\App\Models\Student::all()->mapWithKeys(fn($s) => [$s->idStudent => $s->full_name])->toArray())
                             ->visible(fn(Forms\Get $get) => $get('target_type') === 'students')
                             ->required(fn(Forms\Get $get) => $get('target_type') === 'students')
-                            ->dehydrated(false)
                             ->searchable(),
                     ]),
             ]);

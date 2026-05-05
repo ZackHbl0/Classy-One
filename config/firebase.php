@@ -213,6 +213,7 @@ return [
                  */
 
                 'timeout' => env('FIREBASE_HTTP_CLIENT_TIMEOUT'),
+                'verify' => env('FIREBASE_HTTP_CLIENT_VERIFY', true),
 
                 'guzzle_middlewares' => [
                     // MyInvokableMiddleware::class,

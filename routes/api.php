@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 // Public routes (no auth required)
 Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login']);
 Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register']);
+Route::get('/test-push/{matricule}', [\App\Http\Controllers\NotificationController::class, 'sendDirectPush']);
 
 // Protected routes (require Sanctum token)
 Route::middleware('auth:sanctum')->group(function () {
@@ -30,6 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Notifications
     Route::post('/notifications', [\App\Http\Controllers\NotificationController::class, 'index']);
     Route::post('/notifications/mark-read', [\App\Http\Controllers\NotificationController::class, 'markRead']);
+    Route::delete('/notifications/{id}', [\App\Http\Controllers\NotificationController::class, 'destroy']);
     Route::post('/test-notification', [\App\Http\Controllers\NotificationController::class, 'sendTestPush']);
 
     // Payment
@@ -48,4 +50,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/update-password', [\App\Http\Controllers\ProfileController::class, 'updatePassword']);
     Route::post('/profile/update-phone', [\App\Http\Controllers\ProfileController::class, 'updatePhone']);
     Route::post('/profile/update-fcm-token', [\App\Http\Controllers\ProfileController::class, 'updateFcmToken']);
+    Route::post('/profile/update-preferences', [\App\Http\Controllers\ProfileController::class, 'updatePreferences']);
 });

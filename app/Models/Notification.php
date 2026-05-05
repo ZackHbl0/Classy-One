@@ -25,6 +25,20 @@ class Notification extends Model
         'target_ids' => 'array',
     ];
 
+    /**
+     * The "booted" method of the model.
+     */
+    protected static function booted()
+    {
+        static::created(function ($notification) {
+            try {
+                \App\Services\FcmService::sendNotification($notification);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Failed to send push: " . $e->getMessage());
+            }
+        });
+    }
+
     public function reads()
     {
         return $this->hasMany(NotificationRead::class, 'idNotification', 'id');

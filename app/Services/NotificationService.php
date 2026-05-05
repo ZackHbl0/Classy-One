@@ -20,6 +20,9 @@ class NotificationService
 
     /**
      * Send a notification to students.
+     * Note: This method now primarily handles saving the notification to the DB.
+     * The actual FCM broadcast is handled automatically by the Notification 
+     * model's "created" hook to ensure consistency across the system.
      */
     public function send(
         string $title,
@@ -28,25 +31,18 @@ class NotificationService
         string $targetType = 'all',
         ?array $targetIds = null
     ): void {
-        $tokens = [];
-        $students = collect();
         $targetSummary = 'Tous les étudiants';
 
         if ($targetType === 'students' && !empty($targetIds)) {
             $students = Student::whereIn('idStudent', $targetIds)->get();
-            $targetSummary = 'Étudiant(s): ' . $students->pluck('full_name')->take(3)->implode(', ');
+            $targetSummary = 'Étudiant(s): ' . $students->pluck('nom')->take(3)->implode(', ');
             if ($students->count() > 3) $targetSummary .= '...';
         } elseif ($targetType === 'classes' && !empty($targetIds)) {
-            $students = Student::whereHas('registres', function ($query) use ($targetIds) {
-                $query->whereIn('Cla_id', $targetIds);
-            })->get();
             $classes = Classe::whereIn('id', $targetIds)->get();
             $targetSummary = 'Classe(s): ' . $classes->pluck('nomClasse')->implode(', ');
-        } else {
-            $students = Student::all();
         }
 
-        // 1. Save to Database
+        // Save to Database — this triggers FcmService::sendNotification() via Model Booted hook
         NotificationModel::create([
             'titre' => $title,
             'message' => $message,
@@ -56,28 +52,5 @@ class NotificationService
             'target_summary' => $targetSummary,
             'idStudent' => ($targetType === 'students' && count($targetIds ?? []) === 1) ? $targetIds[0] : null,
         ]);
-
-        // 2. Prepare FCM Tokens
-        foreach ($students as $student) {
-            if ($student->fcmToken) {
-                $tokens[] = $student->fcmToken;
-            }
-        }
-
-        if (empty($tokens)) {
-            return;
-        }
-
-        // 3. Send Push Notification
-        $cloudMessage = CloudMessage::new()->withNotification([
-            'title' => $title,
-            'body' => $message,
-        ]);
-
-        try {
-            $this->messaging->sendMulticast($cloudMessage, $tokens);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Firebase Push Error: ' . $e->getMessage());
-        }
     }
 }

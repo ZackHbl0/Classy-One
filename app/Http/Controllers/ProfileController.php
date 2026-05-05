@@ -75,4 +75,24 @@ class ProfileController extends Controller
 
         return response()->json(["success" => true, "message" => "Token FCM mis à jour."]);
     }
+
+    public function updatePreferences(Request $request)
+    {
+        $student = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'eventNotifications' => 'required|boolean',
+            'paymentNotifications' => 'required|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(["success" => false, "message" => "Données invalides."]);
+        }
+
+        $student->event_notifications = $request->eventNotifications;
+        $student->payment_notifications = $request->paymentNotifications;
+        $student->save();
+
+        return response()->json(["success" => true, "message" => "Préférences mises à jour."]);
+    }
 }

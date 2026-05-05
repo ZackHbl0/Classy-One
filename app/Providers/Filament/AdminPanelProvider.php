@@ -28,7 +28,10 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('panel')
+            ->brandLogo(asset('osbt_logo.png'))
+            ->brandLogoHeight('45px')
             ->login(\App\Filament\Pages\Auth\Login::class)
+
             ->colors([
                 'primary' => Color::Indigo,
                 'gray' => Color::Slate,
@@ -91,6 +94,14 @@ class AdminPanelProvider extends PanelProvider
                     .fi-topbar input {
                         color: black !important;
                     }
+                    /* Reset dropdown menu colors inside topbar */
+                    .fi-dropdown *, .fi-dropdown-panel * {
+                        color: #374151 !important;
+                    }
+                    .dark .fi-dropdown *, .dark .fi-dropdown-panel * {
+                        color: #e2e8f0 !important;
+                    }
+
                     /* ── Planning grid — guaranteed 3-column layout ── */
                     .planning-grid {
                         display: grid;
