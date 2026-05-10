@@ -16,19 +16,6 @@ class DashboardController extends Controller
     {
         $student = $request->user();
 
-        // Stats: count planning entries for current month
-        $curMonth = Carbon::now()->month;
-        $curYear = Carbon::now()->year;
-
-        $plannings = Planning::where('idStudent', $student->idStudent)
-            ->whereMonth('date', $curMonth)
-            ->whereYear('date', $curYear)
-            ->get();
-
-        $absences = $plannings->where('status', 'Absents')->count();
-        $retards = $plannings->where('status', 'Late in')->count();
-        $conges = $plannings->where('status', 'Leaves')->count();
-        $total = $plannings->count();
 
         // Find the class ID for the student for filtering
         $registre = \App\Models\Registre::where('idStudent', $student->idStudent)->first();
@@ -43,9 +30,9 @@ class DashboardController extends Controller
                 $query->where('target_type', 'all')
                     // 2. Specific Student
                     ->orWhere(function ($q) use ($student) {
-                    $q->where('target_type', 'students')
-                        ->where('idStudent', $student->idStudent);
-                });
+                        $q->where('target_type', 'students')
+                            ->where('idStudent', $student->idStudent);
+                    });
 
                 // 3. Specific Classes
                 if ($classe_id) {
@@ -187,23 +174,7 @@ class DashboardController extends Controller
             ]);
         }
 
-        // 3. Attendance
-        $allPlannings = Planning::where('idStudent', $student->idStudent)->get();
-        foreach ($allPlannings as $plan) {
-            if (in_array($plan->status, ['Absents', 'Late in', 'Leaves'])) {
-                $statusFr = $plan->status === 'Absents' ? 'Absent(e)' : ($plan->status === 'Late in' ? 'En retard' : 'Congé');
-                $date = Carbon::parse($plan->date);
-                $activity->push([
-                    'type' => 'attendance',
-                    'title' => 'Assiduité',
-                    'subtitle' => "Marqué {$statusFr} pour le cours",
-                    'date' => $date,
-                    'date_val' => $date->timestamp,
-                ]);
-            }
-        }
-
-        // 4. Events
+        // 3. Events
         $events = Event::orderBy('date_evenement', 'desc')->limit(10)->get();
         foreach ($events as $e) {
             $date = Carbon::parse($e->date_evenement);
@@ -231,10 +202,6 @@ class DashboardController extends Controller
             "data" => [
                 "student" => $student,
                 "stats" => [
-                    "absences" => $absences,
-                    "retards" => $retards,
-                    "conges" => $conges,
-                    "totalJours" => $total,
                     "dernier_paiement" => $paymentStatusText,
                 ],
                 "urgentNotifications" => $mappedNotifications,
@@ -249,6 +216,28 @@ class DashboardController extends Controller
                 ] : null,
                 "recentActivityFeed" => $recentActivityFeed,
             ]
+        ]);
+    }
+
+    /**
+     * Admin-only revenue summary.
+     * Protected by EnsureUserIsAdmin middleware via /api/admin/revenue.
+     * A Secrétaire token hitting this route returns 403 before reaching here.
+     */
+    public function revenue(Request $request)
+    {
+        $totalRevenue      = Paiement::where('statut', 'Payé')->sum('montant');
+        $pendingRevenue    = Paiement::where('statut', '!=', 'Payé')->sum('montant');
+        $overduePayments   = Paiement::where('statut', '!=', 'Payé')->count();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total_revenue'    => $totalRevenue,
+                'pending_revenue'  => $pendingRevenue,
+                'overdue_payments' => $overduePayments,
+                'currency'         => 'MAD',
+            ],
         ]);
     }
 }

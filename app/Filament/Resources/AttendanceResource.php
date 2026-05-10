@@ -22,6 +22,16 @@ class AttendanceResource extends Resource
     protected static ?string $modelLabel = 'Présence';
     protected static ?string $pluralModelLabel = 'Présences';
 
+    // ── Présences removed from UI ──────────────────────────────────────
+    // Hidden from the sidebar for all roles (admin & secrétaire).
+    protected static bool $navigationHidden = true;
+
+    // Block direct URL access to /panel/attendances for all users.
+    public static function canAccess(): bool
+    {
+        return false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -69,7 +79,7 @@ class AttendanceResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('student.nom')
                     ->label('Étudiant')
-                    ->getStateUsing(fn ($record) => optional($record->student)->nom . ' ' . optional($record->student)->prenom)
+                    ->getStateUsing(fn($record) => optional($record->student)->nom . ' ' . optional($record->student)->prenom)
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('date')
@@ -78,7 +88,7 @@ class AttendanceResource extends Resource
                 Tables\Columns\TextColumn::make('status')
                     ->label('Statut')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'Absents' => 'danger',
                         'Late in' => 'warning',
                         'Early Leave' => 'warning',

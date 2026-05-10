@@ -37,9 +37,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Payment
     Route::post('/paiement', [\App\Http\Controllers\PaymentController::class, 'index']);
 
-    // Planning and Attendance
+    // Planning
     Route::post('/planning', [\App\Http\Controllers\PlanningController::class, 'index']);
-    Route::post('/attendance', [\App\Http\Controllers\AttendanceController::class, 'index']);
+    // Route::post('/attendance', [\App\Http\Controllers\AttendanceController::class, 'index']); // Disabled – Présences section removed
 
     // Documents
     Route::post('/documents', [\App\Http\Controllers\DocumentController::class, 'index']);
@@ -51,4 +51,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/update-phone', [\App\Http\Controllers\ProfileController::class, 'updatePhone']);
     Route::post('/profile/update-fcm-token', [\App\Http\Controllers\ProfileController::class, 'updateFcmToken']);
     Route::post('/profile/update-preferences', [\App\Http\Controllers\ProfileController::class, 'updatePreferences']);
+
+    // ─── Admin-only routes ──────────────────────────────────────────
+    // Accessing /api/admin/* with a Secrétaire token will return 403.
+    Route::middleware('admin')->prefix('admin')->group(function () {
+        Route::get('/revenue', [\App\Http\Controllers\DashboardController::class, 'revenue']);
+    });
 });

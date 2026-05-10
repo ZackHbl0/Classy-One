@@ -11,9 +11,19 @@ use Illuminate\Support\Facades\DB;
 class DashboardStatsWidget extends Widget
 {
     protected static string $view = 'filament.widgets.dashboard-stats';
-    
+
     // Make this take full width
     protected int | string | array $columnSpan = 'full';
+
+    /**
+     * Only visible to Admin/Directeur users.
+     * Secrétaire sees SecretaireDashboardStatsWidget instead.
+     */
+    public static function canView(): bool
+    {
+        $user = auth()->user();
+        return $user && $user->isAdmin();
+    }
 
     protected function getViewData(): array
     {

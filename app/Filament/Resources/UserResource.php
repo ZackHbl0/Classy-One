@@ -1,0 +1,167 @@
+<?php
+
+namespace App\Filament\Resources;
+
+use App\Filament\Resources\UserResource\Pages;
+use App\Models\User;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Hash;
+
+class UserResource extends Resource
+{
+    protected static ?string $model = User::class;
+
+    protected static ?string $navigationIcon = 'heroicon-o-user-group';
+
+    protected static ?string $navigationLabel = 'Gestion des Employés';
+
+    protected static ?string $modelLabel = 'Employé';
+
+    protected static ?string $pluralModelLabel = 'Employés';
+
+    protected static ?int $navigationSort = 99;
+
+    // ─── Access Control ──────────────────────────────────────────────
+
+    /**
+     * Only Admins can see and use this resource.
+     */
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        return $user && $user->isAdmin();
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+        return $user && $user->isAdmin();
+    }
+
+    public static function canEdit($record): bool
+    {
+        $user = auth()->user();
+        return $user && $user->isAdmin();
+    }
+
+    public static function canDelete($record): bool
+    {
+        $user = auth()->user();
+        return $user && $user->isAdmin();
+    }
+
+    // ─── Form ────────────────────────────────────────────────────────
+
+    public static function form(Form $form): Form
+    {
+        return $form->schema([
+            Forms\Components\Section::make('Informations du compte')
+                ->description('Créez ou modifiez un compte employé.')
+                ->icon('heroicon-o-user-circle')
+                ->schema([
+                    Forms\Components\TextInput::make('name')
+                        ->label('Nom complet')
+                        ->required()
+                        ->maxLength(255),
+
+                    Forms\Components\TextInput::make('email')
+                        ->label('Adresse e-mail')
+                        ->email()
+                        ->required()
+                        ->unique(User::class, 'email', ignoreRecord: true)
+                        ->maxLength(255),
+
+                    Forms\Components\TextInput::make('password')
+                        ->label('Mot de passe')
+                        ->password()
+                        ->revealable()
+                        ->dehydrateStateUsing(fn($state) => Hash::make($state))
+                        ->dehydrated(fn($state) => filled($state))
+                        ->required(fn(string $context) => $context === 'create')
+                        ->helperText('Laissez vide pour conserver le mot de passe actuel lors de la modification.')
+                        ->maxLength(255),
+
+                    Forms\Components\Select::make('role')
+                        ->label('Rôle')
+                        ->options([
+                            'admin'      => '👑 Administrateur / Directeur',
+                            'secretaire' => '📋 Secrétaire',
+                        ])
+                        ->required()
+                        ->native(false)
+                        ->helperText('Les Secrétaires ont un accès limité sans données financières.'),
+                ])
+                ->columns(2),
+        ]);
+    }
+
+    // ─── Table ───────────────────────────────────────────────────────
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('name')
+                    ->label('Nom')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('email')
+                    ->label('E-mail')
+                    ->searchable()
+                    ->copyable(),
+
+                Tables\Columns\BadgeColumn::make('role')
+                    ->label('Rôle')
+                    ->colors([
+                        'warning' => 'secretaire',
+                        'success' => 'admin',
+                    ])
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                        'admin'      => 'Administrateur',
+                        'secretaire' => 'Secrétaire',
+                        default      => ucfirst($state),
+                    }),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Créé le')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: false),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('role')
+                    ->label('Filtrer par rôle')
+                    ->options([
+                        'admin'      => 'Administrateur',
+                        'secretaire' => 'Secrétaire',
+                    ]),
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ])
+            ->defaultSort('created_at', 'desc');
+    }
+
+    // ─── Pages ───────────────────────────────────────────────────────
+
+    public static function getPages(): array
+    {
+        return [
+            'index'  => Pages\ListUsers::route('/'),
+            'create' => Pages\CreateUser::route('/create'),
+            'edit'   => Pages\EditUser::route('/{record}/edit'),
+        ];
+    }
+}

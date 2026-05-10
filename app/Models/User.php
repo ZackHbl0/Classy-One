@@ -24,6 +24,7 @@ class User extends Authenticatable implements FilamentUser
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**
@@ -49,9 +50,24 @@ class User extends Authenticatable implements FilamentUser
         ];
     }
 
+    // ─── Role Helpers ────────────────────────────────────────────
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isSecretaire(): bool
+    {
+        return $this->role === 'secretaire';
+    }
+
+    // ─── Filament Panel Access ───────────────────────────────────
+
     public function canAccessPanel(Panel $panel): bool
     {
-        // For development, allow any test user, or restrict by domain
-        return str_ends_with($this->email, '@osbt.ma') || $this->email === 'admin@osbt.com';
+        // Allow both admins and secretaires with an OSBT email domain
+        return str_ends_with($this->email, '@osbt.ma') ||
+            str_ends_with($this->email, '@osbt.com');
     }
 }

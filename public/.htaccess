@@ -2,7 +2,7 @@ Options -Indexes
 <IfModule mod_rewrite.c>
     Options +FollowSymLinks -MultiViews
     RewriteEngine On
-    RewriteBase /osbt-api/public/
+    RewriteBase /Classy-One/public/
 
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

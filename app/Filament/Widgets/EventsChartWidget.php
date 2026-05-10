@@ -11,6 +11,12 @@ class EventsChartWidget extends ChartWidget
     protected static ?string $heading = 'Events Created per Month';
     protected int | string | array $columnSpan = 1;
 
+    public static function canView(): bool
+    {
+        $user = auth()->user();
+        return $user && $user->isAdmin();
+    }
+
     protected function getData(): array
     {
         $data = [];
@@ -22,9 +28,9 @@ class EventsChartWidget extends ChartWidget
             $labels[] = $month->format('M'); // e.g. Sep, Oct
 
             $count = Event::whereYear('date_evenement', $month->year)
-                          ->whereMonth('date_evenement', $month->month)
-                          ->count();
-            
+                ->whereMonth('date_evenement', $month->month)
+                ->count();
+
             $data[] = $count;
         }
 

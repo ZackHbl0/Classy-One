@@ -28,9 +28,14 @@ class CustomDashboard extends \Filament\Pages\Dashboard
     public function getWidgets(): array
     {
         return [
+            // Admin-only full stats (revenue included)
             \App\Filament\Widgets\DashboardStatsWidget::class,
+            // Secrétaire-only slim stats (no revenue)
+            \App\Filament\Widgets\SecretaireDashboardStatsWidget::class,
+            // Admin-only charts
             \App\Filament\Widgets\NotificationsChartWidget::class,
             \App\Filament\Widgets\EventsChartWidget::class,
+            // Visible to all roles
             \App\Filament\Widgets\RecentNotificationsWidget::class,
             \App\Filament\Widgets\UpcomingEventsWidget::class,
         ];
