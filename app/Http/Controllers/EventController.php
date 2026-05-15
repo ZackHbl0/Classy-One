@@ -29,22 +29,31 @@ class EventController extends Controller
 
             $participantCount = EventRegistration::where('idEvent', $e->id)->count();
 
+            // Return the raw storage-relative path (e.g. "events/image.jpg").
+            // The mobile client builds the full URL by prepending its own base URL
+            // (e.g. http://192.168.x.x/.../storage/), so the API never hard-codes
+            // a host and images work on any local IP without touching the backend.
+            $imagePath = $e->pieceJointe
+                ? ltrim($e->pieceJointe, '/')
+                : null;
+
             return [
-                "id" => (int) $e->id,
-                "title" => $e->titre,
-                "description" => $e->description,
-                "date_event" => $e->date_evenement,
-                "location" => $e->lieu ?? '',
-                "image_url" => $e->pieceJointe ? Storage::disk('public')->url($e->pieceJointe) : null,
-                "category" => $e->categorie ?? 'Académique',
-                "isConfirmed" => $isRegistered,
+                "id"           => (int) $e->id,
+                "title"        => $e->titre,
+                "description"  => $e->description,
+                "date_event"   => $e->date_evenement,
+                "location"     => $e->lieu ?? '',
+                "image_url"    => $imagePath,
+                "category"     => $e->categorie ?? 'Académique',
+                "isConfirmed"  => $isRegistered,
                 "participants" => $participantCount,
+                "price"        => $e->prix ?? 'Gratuit',
             ];
         });
 
         return response()->json([
             "success" => true,
-            "data" => $mapped
+            "data"    => $mapped
         ]);
     }
 

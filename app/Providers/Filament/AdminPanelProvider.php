@@ -3,9 +3,9 @@
 namespace App\Providers\Filament;
 
 use Filament\Http\Middleware\Authenticate;
-use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\MenuItem;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -50,7 +50,10 @@ class AdminPanelProvider extends PanelProvider
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
-                AuthenticateSession::class,
+                // AuthenticateSession is intentionally removed:
+                // It re-validates the user's password hash on every request and silently
+                // invalidates the session on any mismatch (e.g. after a server restart),
+                // which destroys the CSRF token and causes a 419 on the next Livewire request.
                 ShareErrorsFromSession::class,
                 VerifyCsrfToken::class,
                 SubstituteBindings::class,
@@ -59,6 +62,15 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+            ])
+            // Override the default Filament logout so it hits our clean-logout
+            // controller that invalidates the session and regenerates CSRF before
+            // redirecting – preventing the 419 Page Expired error.
+            ->userMenuItems([
+                'logout' => MenuItem::make()
+                    ->label('Se déconnecter')
+                    ->icon('heroicon-o-arrow-right-on-rectangle')
+                    ->url('/admin-logout'),
             ]);
     }
 
@@ -76,6 +88,20 @@ class AdminPanelProvider extends PanelProvider
                         if (password) password.setAttribute("name", "password");
                         const remember = document.getElementById("data.remember");
                         if (remember) remember.setAttribute("name", "remember");
+
+                        // ── CSRF / Session cookie cleanup ──────────────────────────────
+                        // On the login page, expire any stale XSRF-TOKEN or session cookie
+                        // that the browser is holding from a previous server session.
+                        // This prevents the "419 Page Expired" error after a server restart.
+                        if (window.location.pathname.includes("/login")) {
+                            // Cookie name is Str::slug(APP_NAME) + -session => laravel-session
+                            // XSRF-TOKEN is the CSRF cookie set by Laravel for Axios/fetch.
+                            var cookiesToClear = ["XSRF-TOKEN", "laravel-session"];
+                            cookiesToClear.forEach(function(name) {
+                                document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                                document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=localhost;";
+                            });
+                        }
                     });
                 </script>
             ',

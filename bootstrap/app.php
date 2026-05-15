@@ -18,6 +18,18 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->statefulApi();
 
+        // Exclude Livewire and Filament logout routes from CSRF verification.
+        // Livewire 3 secures /livewire/update via cryptographic snapshot signing,
+        // so removing Laravel's CSRF check for it is safe and required on Laravel 11
+        // where Livewire's automatic exclusion does not integrate with the new
+        // middleware bootstrap API — causing persistent 419 on the dashboard.
+        $middleware->validateCsrfTokens(except: [
+            'livewire/update',
+            'livewire/*',
+            'panel/logout',
+            'admin-logout',
+        ]);
+
         // Register role middleware alias
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,

@@ -1,10 +1,17 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdminLogoutController;
 
 Route::get('/', function () {
     return redirect('/panel');
 });
 
+// Custom admin logout – accepts GET and POST because Filament's user-menu fires a
+// POST via Livewire internally, even when the MenuItem URL is a plain anchor href.
+// CSRF is excluded for this path in bootstrap/app.php, so no token is required.
+// The controller invalidates the session and regenerates the CSRF token cleanly.
+Route::any('/admin-logout', [AdminLogoutController::class, 'logout'])
+    ->middleware('web')
+    ->name('admin.logout');
 
-// Manual routes removed to allow Filament's internal routing to work correctly
