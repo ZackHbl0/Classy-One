@@ -18,6 +18,12 @@ class DocumentRequestResource extends Resource
 {
     protected static ?string $model = DocumentRequest::class;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Hide from professors - show only to admin/secretaire
+        return auth()->user()?->role !== 'professeur';
+    }
+
     protected static ?string $navigationIcon = 'heroicon-o-document-duplicate';
     protected static ?string $modelLabel = 'Demande de Document';
     protected static ?string $pluralModelLabel = 'Demandes de Documents';

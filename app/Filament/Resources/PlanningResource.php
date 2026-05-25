@@ -17,6 +17,12 @@ class PlanningResource extends Resource
 {
     protected static ?string $model = Planning::class;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Hide from professors - show only to admin/secretaire
+        return auth()->user()?->role !== 'professeur';
+    }
+
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 
     public static function form(Form $form): Form

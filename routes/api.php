@@ -46,6 +46,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/documents/create', [\App\Http\Controllers\DocumentController::class, 'store']);
     Route::get('/documents/{id}/download', [\App\Http\Controllers\DocumentPdfController::class, 'download']);
 
+    // Courses
+    Route::post('/courses', [\App\Http\Controllers\CourseController::class, 'index']);
+
     // Profile
     Route::post('/profile/update-password', [\App\Http\Controllers\ProfileController::class, 'updatePassword']);
     Route::post('/profile/update-phone', [\App\Http\Controllers\ProfileController::class, 'updatePhone']);

@@ -17,6 +17,12 @@ class PaiementResource extends Resource
 {
     protected static ?string $model = Paiement::class;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Hide from professors - show only to admin/secretaire
+        return auth()->user()?->role !== 'professeur';
+    }
+
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
 
     public static function form(Form $form): Form

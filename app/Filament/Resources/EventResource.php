@@ -17,6 +17,12 @@ class EventResource extends Resource
 {
     protected static ?string $model = Event::class;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Hide from professors - show only to admin/secretaire
+        return auth()->user()?->role !== 'professeur';
+    }
+
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
 
     public static function form(Form $form): Form

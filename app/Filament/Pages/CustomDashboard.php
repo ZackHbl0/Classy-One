@@ -9,12 +9,26 @@ class CustomDashboard extends \Filament\Pages\Dashboard
 
     public function getHeading(): string|\Illuminate\Contracts\Support\Htmlable
     {
-        return 'Dashboard';
+        $role = auth()->user()?->role;
+
+        return match ($role) {
+            'professeur' => 'Professor Dashboard',
+            'secretaire' => 'Secretary Dashboard',
+            'admin' => 'Admin Dashboard',
+            default => 'Dashboard',
+        };
     }
 
     public function getSubheading(): ?string
     {
-        return 'Overview of OSBT Notify activity';
+        $role = auth()->user()?->role;
+
+        return match ($role) {
+            'professeur' => 'Your teaching activities and course management',
+            'secretaire' => 'Administrative overview',
+            'admin' => 'Overview of OSBT Notify activity',
+            default => 'Welcome to your dashboard',
+        };
     }
 
     /**
@@ -27,7 +41,11 @@ class CustomDashboard extends \Filament\Pages\Dashboard
 
     public function getWidgets(): array
     {
-        return [
+        // Check if user is a professor
+        $isProfessor = auth()->user()?->role === 'professeur';
+
+        // Base widgets visible to all non-professor roles
+        $widgets = [
             // Admin-only full stats (revenue included)
             \App\Filament\Widgets\DashboardStatsWidget::class,
             // Secrétaire-only slim stats (no revenue)
@@ -35,9 +53,21 @@ class CustomDashboard extends \Filament\Pages\Dashboard
             // Admin-only charts
             \App\Filament\Widgets\NotificationsChartWidget::class,
             \App\Filament\Widgets\EventsChartWidget::class,
+        ];
+
+        // If professor: show professor-specific widgets only
+        if ($isProfessor) {
+            return [
+                \App\Filament\Widgets\ProfessorStatsWidget::class,
+                \App\Filament\Widgets\ProfessorLatestCoursesWidget::class,
+            ];
+        }
+
+        // For all other roles (admin, secretaire, etc.): show default widgets + shared ones
+        return array_merge($widgets, [
             // Visible to all roles
             \App\Filament\Widgets\RecentNotificationsWidget::class,
             \App\Filament\Widgets\UpcomingEventsWidget::class,
-        ];
+        ]);
     }
 }

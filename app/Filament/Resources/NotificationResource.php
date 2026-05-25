@@ -18,6 +18,12 @@ class NotificationResource extends Resource
 {
     protected static ?string $model = Notification::class;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Hide from professors - show only to admin/secretaire
+        return auth()->user()?->role !== 'professeur';
+    }
+
     protected static ?string $navigationIcon = 'heroicon-o-bell';
     protected static ?string $modelLabel = 'Notification';
     protected static ?string $pluralModelLabel = 'Notifications';

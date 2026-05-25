@@ -6,6 +6,7 @@ use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -15,6 +16,12 @@ use Illuminate\Support\Facades\Hash;
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Hide from professors - show only to admin/secretaire
+        return auth()->user()?->role !== 'professeur';
+    }
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
@@ -91,10 +98,22 @@ class UserResource extends Resource
                         ->options([
                             'admin'      => '👑 Administrateur / Directeur',
                             'secretaire' => '📋 Secrétaire',
+                            'professeur' => '🎓 Professeur',
                         ])
                         ->required()
+                        ->live()
                         ->native(false)
-                        ->helperText('Les Secrétaires ont un accès limité sans données financières.'),
+                        ->helperText('Les Secrétaires ont un accès limité sans données financières. Les Professeurs peuvent publier des cours pour leur classe assignée.'),
+
+                    Forms\Components\Select::make('classe_id')
+                        ->label('Classe assignée')
+                        ->relationship('classe', 'nomClasse')
+                        ->searchable()
+                        ->preload()
+                        ->native(false)
+                        ->visible(fn (Get $get): bool => $get('role') === 'professeur')
+                        ->required(fn (Get $get): bool => $get('role') === 'professeur')
+                        ->helperText('Requis pour les professeurs (ex. DEV201).'),
                 ])
                 ->columns(2),
         ]);
@@ -121,12 +140,21 @@ class UserResource extends Resource
                     ->colors([
                         'warning' => 'secretaire',
                         'success' => 'admin',
+                        'info'    => 'professeur',
                     ])
                     ->formatStateUsing(fn(string $state): string => match ($state) {
                         'admin'      => 'Administrateur',
                         'secretaire' => 'Secrétaire',
+                        'professeur' => 'Professeur',
                         default      => ucfirst($state),
                     }),
+
+                Tables\Columns\TextColumn::make('classe.nomClasse')
+                    ->label('Classe')
+                    ->badge()
+                    ->color('info')
+                    ->placeholder('—')
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Créé le')
@@ -140,6 +168,7 @@ class UserResource extends Resource
                     ->options([
                         'admin'      => 'Administrateur',
                         'secretaire' => 'Secrétaire',
+                        'professeur' => 'Professeur',
                     ]),
             ])
             ->actions([

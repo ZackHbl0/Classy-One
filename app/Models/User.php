@@ -25,6 +25,7 @@ class User extends Authenticatable implements FilamentUser
         'email',
         'password',
         'role',
+        'classe_id',
     ];
 
     /**
@@ -60,6 +61,21 @@ class User extends Authenticatable implements FilamentUser
     public function isSecretaire(): bool
     {
         return $this->role === 'secretaire';
+    }
+
+    public function isProfesseur(): bool
+    {
+        return $this->role === 'professeur';
+    }
+
+    public function classe()
+    {
+        return $this->belongsTo(Classe::class, 'classe_id', 'id');
+    }
+
+    public function courses()
+    {
+        return $this->hasMany(Course::class, 'professor_id');
     }
 
     // ─── Filament Panel Access ───────────────────────────────────

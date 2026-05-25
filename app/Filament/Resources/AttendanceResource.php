@@ -16,6 +16,12 @@ class AttendanceResource extends Resource
 {
     protected static ?string $model = Planning::class;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Hide from professors - show only to admin/secretaire
+        return auth()->user()?->role !== 'professeur';
+    }
+
     protected static ?string $slug = 'attendances';
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
     protected static ?string $navigationLabel = 'Présences';

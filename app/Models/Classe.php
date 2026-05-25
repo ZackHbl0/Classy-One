@@ -29,4 +29,14 @@ class Classe extends Model
     {
         return $this->hasMany(Planning::class, 'classe_id', 'id');
     }
+
+    public function professors()
+    {
+        return $this->hasMany(User::class, 'classe_id')->where('role', 'professeur');
+    }
+
+    public function courses()
+    {
+        return $this->hasMany(Course::class, 'classe_id');
+    }
 }
