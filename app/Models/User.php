@@ -78,6 +78,12 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(Course::class, 'professor_id');
     }
 
+    // Grades assigned by this teacher
+    public function assignedGrades()
+    {
+        return $this->hasMany(Grade::class, 'teacher_id');
+    }
+
     // ─── Filament Panel Access ───────────────────────────────────
 
     public function canAccessPanel(Panel $panel): bool

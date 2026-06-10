@@ -16,8 +16,8 @@ class CourseResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        // Show to professors, admin, and secretaire - hide from students
-        return auth()->user()?->role !== 'student';
+        // Only show to professors (teachers)
+        return auth()->user()?->isProfesseur() ?? false;
     }
 
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
@@ -34,7 +34,7 @@ class CourseResource extends Resource
     {
         $user = auth()->user();
 
-        return $user && ($user->isAdmin() || $user->isProfesseur());
+        return $user && $user->isProfesseur();
     }
 
     public static function canCreate(): bool
@@ -45,10 +45,6 @@ class CourseResource extends Resource
     public static function canEdit($record): bool
     {
         $user = auth()->user();
-
-        if ($user?->isAdmin()) {
-            return true;
-        }
 
         return $user?->isProfesseur() && (int) $record->professor_id === (int) $user->id;
     }
@@ -103,8 +99,23 @@ class CourseResource extends Resource
 
                     Forms\Components\FileUpload::make('file_path')
                         ->label('Fichier (PDF / vidéo)')
+                        ->disk('public')
                         ->directory('courses')
                         ->visibility('public')
+                        ->acceptedFileTypes([
+                            'video/mp4',
+                            'video/quicktime',
+                            'video/x-msvideo',
+                            'video/x-matroska',
+                            'video/webm',
+                            'video/3gpp',
+                            'video/x-flv',
+                            'video/ogg',
+                            'video/*',
+                            'application/pdf',
+                        ])
+                        ->maxSize(512000) // 500 MB in KB
+                        ->preserveFilenames()
                         ->columnSpanFull(),
 
                     Forms\Components\Select::make('classe_id')

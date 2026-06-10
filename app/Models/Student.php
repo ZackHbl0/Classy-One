@@ -78,4 +78,10 @@ class Student extends Authenticatable
             'id'
         );
     }
+
+    // A Student has many grades
+    public function grades()
+    {
+        return $this->hasMany(Grade::class, 'student_id', 'idStudent');
+    }
 }

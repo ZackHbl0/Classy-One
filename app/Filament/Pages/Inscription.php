@@ -26,6 +26,12 @@ class Inscription extends Page implements HasForms
     protected static string $view = 'filament.pages.inscription';
     protected static ?string $title = 'Nouvelle Inscription';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Hide from professors - administrative task only
+        return auth()->user()?->role !== 'professeur';
+    }
+
     public ?array $data = [];
 
     public function mount(): void

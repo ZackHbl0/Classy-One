@@ -37,7 +37,7 @@ class CourseController extends Controller
                 'description' => $course->description,
                 'file_path' => $course->file_path,
                 // absolute stream url/download url if file exists
-                'video_url' => $course->file_path ? url(\Illuminate\Support\Facades\Storage::url($course->file_path)) : null,
+                'video_url' => $course->file_path ? url(\Illuminate\Support\Facades\Storage::disk('public')->url($course->file_path)) : null,
                 'professor_name' => $course->professor ? $course->professor->name : 'Professeur',
                 'created_at' => $course->created_at ? $course->created_at->toIso8601String() : null,
             ];

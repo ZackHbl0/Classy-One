@@ -49,6 +49,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Courses
     Route::post('/courses', [\App\Http\Controllers\CourseController::class, 'index']);
 
+    // Grades
+    Route::post('/grades', [\App\Http\Controllers\GradeController::class, 'index']);
+    Route::post('/grades/statistics', [\App\Http\Controllers\GradeController::class, 'statistics']);
+    Route::post('/grades/by-course', [\App\Http\Controllers\GradeController::class, 'byCourse']);
+    Route::post('/grades/by-type', [\App\Http\Controllers\GradeController::class, 'byType']);
+
     // Profile
     Route::post('/profile/update-password', [\App\Http\Controllers\ProfileController::class, 'updatePassword']);
     Route::post('/profile/update-phone', [\App\Http\Controllers\ProfileController::class, 'updatePhone']);

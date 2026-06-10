@@ -22,7 +22,7 @@ class StudentResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         // Hide from professors - show only to admin/secretaire
-        return auth()->user()?->role !== 'professeur';
+        return auth()->user()?->role !== 'prof';
     }
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
@@ -83,6 +83,7 @@ class StudentResource extends Resource
                     ->tabs([
                         Infolists\Components\Tabs\Tab::make('Informations')
                             ->icon('heroicon-m-information-circle')
+                            ->visible(fn() => auth()->user()?->role !== 'admin')
                             ->schema([
                                 Infolists\Components\Grid::make(2)
                                     ->schema([
@@ -99,6 +100,7 @@ class StudentResource extends Resource
                             ]),
                         Infolists\Components\Tabs\Tab::make('Paiements')
                             ->icon('heroicon-m-credit-card')
+                            ->visible(fn() => auth()->user()?->role !== 'admin')
                             ->schema([
                                 Infolists\Components\RepeatableEntry::make('paiements')
                                     ->label('')
@@ -122,6 +124,68 @@ class StudentResource extends Resource
                                             ]),
                                     ])
                                     ->placeholder('Aucun historique de paiement.'),
+                            ]),
+                        Infolists\Components\Tabs\Tab::make('Semestre 1 (S1)')
+                            ->icon('heroicon-o-academic-cap')
+                            ->schema([
+                                Infolists\Components\RepeatableEntry::make('grades_s1')
+                                    ->label('')
+                                    ->getStateUsing(function ($record) {
+                                        return $record->grades()
+                                            ->where('semester', 'S1')
+                                            ->selectRaw('course_id, AVG(note) as average_note')
+                                            ->groupBy('course_id')
+                                            ->get()
+                                            ->map(fn($g) => [
+                                                'matiere' => $g->course?->title ?? 'Matière Inconnue',
+                                                'moyenne' => number_format($g->average_note, 2) . ' / 20',
+                                                'is_passing' => $g->average_note >= 10,
+                                            ]);
+                                    })
+                                    ->schema([
+                                        Infolists\Components\Grid::make(2)
+                                            ->schema([
+                                                Infolists\Components\TextEntry::make('matiere')
+                                                    ->label('Matière')
+                                                    ->weight('bold'),
+                                                Infolists\Components\TextEntry::make('moyenne')
+                                                    ->label('Moyenne Générale')
+                                                    ->badge()
+                                                    ->color(fn($record) => $record['is_passing'] ? 'success' : 'danger'),
+                                            ]),
+                                    ])
+                                    ->placeholder('Aucune note enregistrée pour ce semestre.'),
+                            ]),
+                        Infolists\Components\Tabs\Tab::make('Semestre 2 (S2)')
+                            ->icon('heroicon-o-academic-cap')
+                            ->schema([
+                                Infolists\Components\RepeatableEntry::make('grades_s2')
+                                    ->label('')
+                                    ->getStateUsing(function ($record) {
+                                        return $record->grades()
+                                            ->where('semester', 'S2')
+                                            ->selectRaw('course_id, AVG(note) as average_note')
+                                            ->groupBy('course_id')
+                                            ->get()
+                                            ->map(fn($g) => [
+                                                'matiere' => $g->course?->title ?? 'Matière Inconnue',
+                                                'moyenne' => number_format($g->average_note, 2) . ' / 20',
+                                                'is_passing' => $g->average_note >= 10,
+                                            ]);
+                                    })
+                                    ->schema([
+                                        Infolists\Components\Grid::make(2)
+                                            ->schema([
+                                                Infolists\Components\TextEntry::make('matiere')
+                                                    ->label('Matière')
+                                                    ->weight('bold'),
+                                                Infolists\Components\TextEntry::make('moyenne')
+                                                    ->label('Moyenne Générale')
+                                                    ->badge()
+                                                    ->color(fn($record) => $record['is_passing'] ? 'success' : 'danger'),
+                                            ]),
+                                    ])
+                                    ->placeholder('Aucune note enregistrée pour ce semestre.'),
                             ]),
                     ])
                     ->columnSpanFull(),
@@ -169,16 +233,14 @@ class StudentResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->label('Voir Profil')
-                    ->icon('heroicon-o-eye')
-                    ->modalHeading('Profil de l\'étudiant')
-                    ->modalWidth('2xl')
-                    ->modalFooterActions([]),
+                    ->icon('heroicon-o-eye'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->recordUrl(fn (Student $record): string => StudentResource::getUrl('view', ['record' => $record]));
     }
 
     public static function getRelations(): array
@@ -192,6 +254,7 @@ class StudentResource extends Resource
     {
         return [
             'index' => Pages\ListStudents::route('/'),
+            'view' => Pages\ViewStudent::route('/{record}'),
         ];
     }
 }

@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
 
+        // Add dynamic URL middleware to API routes for mobile app compatibility
+        $middleware->api(append: [
+            \App\Http\Middleware\DynamicApiUrl::class,
+        ]);
+
         $middleware->statefulApi();
 
         // Exclude Livewire and Filament logout routes from CSRF verification.

@@ -32,4 +32,12 @@ class Course extends Model
     {
         return $this->belongsTo(Classe::class, 'classe_id', 'id');
     }
+
+    /**
+     * Get all grades for this course.
+     */
+    public function grades()
+    {
+        return $this->hasMany(Grade::class, 'course_id');
+    }
 }
