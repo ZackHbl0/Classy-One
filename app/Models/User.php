@@ -48,7 +48,13 @@ class User extends Authenticatable implements FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'last_seen_at' => 'datetime',
         ];
+    }
+
+    public function isOnline(): bool
+    {
+        return $this->last_seen_at && $this->last_seen_at->diffInMinutes(now()) < 5;
     }
 
     // ─── Role Helpers ────────────────────────────────────────────
@@ -84,6 +90,18 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(Grade::class, 'teacher_id');
     }
 
+    // ─── Chat System ─────────────────────────────────────────────
+
+    public function sentMessages()
+    {
+        return $this->hasMany(Message::class, 'sender_id');
+    }
+
+    public function receivedMessages()
+    {
+        return $this->hasMany(Message::class, 'receiver_id');
+    }
+
     // ─── Filament Panel Access ───────────────────────────────────
 
     public function canAccessPanel(Panel $panel): bool
@@ -91,5 +109,10 @@ class User extends Authenticatable implements FilamentUser
         // Allow both admins and secretaires with an OSBT email domain
         return str_ends_with($this->email, '@osbt.ma') ||
             str_ends_with($this->email, '@osbt.com');
+    }
+
+    public function conversations()
+    {
+        return $this->morphToMany(Conversation::class, 'participant', 'conversation_participants')->withTimestamps();
     }
 }

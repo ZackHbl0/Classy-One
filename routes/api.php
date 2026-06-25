@@ -16,6 +16,26 @@ Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login']);
 Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register']);
 Route::get('/test-push/{matricule}', [\App\Http\Controllers\NotificationController::class, 'sendDirectPush']);
 
+// Media proxy for CORS
+Route::get('/media/{type}/{filename}', function ($type, $filename) {
+    // Only allow specific types for security
+    if (!in_array($type, ['attachments', 'audio'])) {
+        abort(404);
+    }
+    
+    $path = storage_path('app/public/chat/' . $type . '/' . $filename);
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    
+    $mimeType = mime_content_type($path);
+    return response()->file($path, [
+        'Content-Type' => $mimeType,
+        'Access-Control-Allow-Origin' => '*',
+        'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+    ]);
+});
+
 // Protected routes (require Sanctum token)
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
@@ -60,6 +80,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/update-phone', [\App\Http\Controllers\ProfileController::class, 'updatePhone']);
     Route::post('/profile/update-fcm-token', [\App\Http\Controllers\ProfileController::class, 'updateFcmToken']);
     Route::post('/profile/update-preferences', [\App\Http\Controllers\ProfileController::class, 'updatePreferences']);
+
+    // Chat
+    Route::get('/chat/professors', [\App\Http\Controllers\API\MessageController::class, 'getProfessors']);
+    Route::get('/chat/students', [\App\Http\Controllers\API\MessageController::class, 'getChatStudents']);
+    Route::get('/chat/history/{userId}', [\App\Http\Controllers\API\MessageController::class, 'getChatHistory']);
+    Route::post('/chat/send', [\App\Http\Controllers\API\MessageController::class, 'sendMessage']);
+    Route::post('/chat/groups', [\App\Http\Controllers\API\MessageController::class, 'createGroup']);
 
     // ─── Admin-only routes ──────────────────────────────────────────
     // Accessing /api/admin/* with a Secrétaire token will return 403.

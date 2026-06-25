@@ -19,6 +19,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Add dynamic URL middleware to API routes for mobile app compatibility
         $middleware->api(append: [
             \App\Http\Middleware\DynamicApiUrl::class,
+            \App\Http\Middleware\UpdateUserLastSeen::class,
+        ]);
+
+        $middleware->web(append: [
+            \App\Http\Middleware\UpdateUserLastSeen::class,
         ]);
 
         $middleware->statefulApi();

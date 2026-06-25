@@ -26,7 +26,7 @@ class CustomDashboard extends \Filament\Pages\Dashboard
         return match ($role) {
             'professeur' => 'Your teaching activities and course management',
             'secretaire' => 'Administrative overview',
-            'admin' => 'Overview of OSBT Notify activity',
+            'admin' => 'Overview of ClassyOne activity',
             default => 'Welcome to your dashboard',
         };
     }

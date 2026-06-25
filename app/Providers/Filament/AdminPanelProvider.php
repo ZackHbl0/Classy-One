@@ -28,8 +28,8 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('panel')
-            ->brandLogo(asset('osbt_logo.png'))
-            ->brandLogoHeight('45px')
+            ->brandLogo(asset('classyone_logo.png'))
+            ->brandLogoHeight('110px')
             ->login(\App\Filament\Pages\Auth\Login::class)
 
             ->colors([

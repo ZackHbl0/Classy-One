@@ -19,16 +19,16 @@
 
         <div class="relative z-20 flex flex-col items-center justify-center text-center px-12 w-full h-full pb-10">
 
-            <!-- Logo: Sharp, smaller (56px), rounded corners -->
+            <!-- Logo: ClassyOne logo -->
             <div class="bg-white flex items-center justify-center rounded-xl shadow-lg mb-8"
-                style="width: 56px; height: 56px;">
-                <span class="text-[#0F172A] font-bold uppercase tracking-widest text-[1.05rem]">OSBT</span>
+                style="width: 64px; height: 64px; padding: 8px;">
+                <img src="<?php echo e(asset('classyone_logo.png')); ?>" alt="ClassyOne" style="max-width: 100%; max-height: 100%; object-fit: contain;">
             </div>
 
-            <!-- OSBT NOTIFY: Bold and Golden Yellow -->
+            <!-- ClassyOne: Bold and Golden Yellow -->
             <h1 class="font-bold tracking-tighter mb-5 text-[2.5rem]"
                 style="color: #e6b522 !important; letter-spacing: -0.01em ; font-family:Cambria, Cochin, Georgia, Times, 'Times New Roman', serif; font-size: 1.9rem; font-weight: 800;">
-                OSBT NOTIFY</h1>
+                ClassyOne</h1>
 
             <!-- Description Text: Thinner (Light) and Pure White -->
             <div class="max-w-sm mx-auto leading-relaxed space-y-1 text-[0.65rem]"

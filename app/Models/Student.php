@@ -33,6 +33,18 @@ class Student extends Authenticatable
         return $this->nom . ' ' . $this->prenom;
     }
 
+    protected function casts(): array
+    {
+        return [
+            'last_seen_at' => 'datetime',
+        ];
+    }
+
+    public function isOnline(): bool
+    {
+        return $this->last_seen_at && $this->last_seen_at->diffInMinutes(now()) < 5;
+    }
+
     public function registres()
     {
         return $this->hasMany(Registre::class, 'idStudent', 'idStudent');
@@ -83,5 +95,10 @@ class Student extends Authenticatable
     public function grades()
     {
         return $this->hasMany(Grade::class, 'student_id', 'idStudent');
+    }
+
+    public function conversations()
+    {
+        return $this->morphToMany(Conversation::class, 'participant', 'conversation_participants', 'participant_id', 'conversation_id', 'idStudent', 'id')->withTimestamps();
     }
 }

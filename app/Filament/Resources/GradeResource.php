@@ -34,14 +34,14 @@ class GradeResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        // Hide completely for secretaire role
-        return auth()->user()?->role !== 'secretaire';
+        $role = auth()->user()?->role;
+        return in_array($role, ['professeur', 'prof']);
     }
 
     public static function canViewAny(): bool
     {
         $role = auth()->user()?->role;
-        return in_array($role, ['admin', 'professeur', 'prof']);
+        return in_array($role, ['professeur', 'prof']);
     }
 
     public static function canCreate(): bool
@@ -388,8 +388,84 @@ class GradeResource extends Resource
                     ->query(fn($query) => $query->where('note', '<', 10)),
             ])
             ->actions([
+                Tables\Actions\Action::make('voir_bulletins')
+                    ->label('Voir Bulletins')
+                    ->icon('heroicon-o-document-text')
+                    ->modal()
+                    ->modalHeading(fn($record) => "Bulletins de {$record->student->nom} {$record->student->prenom}")
+                    ->modalWidth('4xl')
+                    ->infolist([
+                        Infolists\Components\Tabs::make('Bulletins')
+                            ->tabs([
+                                Infolists\Components\Tabs\Tab::make('Semestre 1 (S1)')
+                                    ->icon('heroicon-o-academic-cap')
+                                    ->schema([
+                                        Infolists\Components\RepeatableEntry::make('grades_s1')
+                                            ->label('')
+                                            ->getStateUsing(function ($record) {
+                                                return $record->student->grades()
+                                                    ->where('semester', 'S1')
+                                                    ->selectRaw('course_id, AVG(note) as average_note')
+                                                    ->groupBy('course_id')
+                                                    ->get()
+                                                    ->map(fn($g) => [
+                                                        'matiere' => $g->course?->title ?? 'Matière Inconnue',
+                                                        'moyenne' => number_format($g->average_note, 2) . ' / 20',
+                                                        'is_passing' => $g->average_note >= 10,
+                                                    ]);
+                                            })
+                                            ->schema([
+                                                Infolists\Components\Grid::make(2)
+                                                    ->schema([
+                                                        Infolists\Components\TextEntry::make('matiere')
+                                                            ->label('Matière')
+                                                            ->weight('bold'),
+                                                        Infolists\Components\TextEntry::make('moyenne')
+                                                            ->label('Moyenne Générale')
+                                                            ->badge()
+                                                            ->color(fn($record) => $record['is_passing'] ? 'success' : 'danger'),
+                                                    ]),
+                                            ])
+                                            ->placeholder('Aucune note enregistrée pour ce semestre.'),
+                                    ]),
+                                Infolists\Components\Tabs\Tab::make('Semestre 2 (S2)')
+                                    ->icon('heroicon-o-academic-cap')
+                                    ->schema([
+                                        Infolists\Components\RepeatableEntry::make('grades_s2')
+                                            ->label('')
+                                            ->getStateUsing(function ($record) {
+                                                return $record->student->grades()
+                                                    ->where('semester', 'S2')
+                                                    ->selectRaw('course_id, AVG(note) as average_note')
+                                                    ->groupBy('course_id')
+                                                    ->get()
+                                                    ->map(fn($g) => [
+                                                        'matiere' => $g->course?->title ?? 'Matière Inconnue',
+                                                        'moyenne' => number_format($g->average_note, 2) . ' / 20',
+                                                        'is_passing' => $g->average_note >= 10,
+                                                    ]);
+                                            })
+                                            ->schema([
+                                                Infolists\Components\Grid::make(2)
+                                                    ->schema([
+                                                        Infolists\Components\TextEntry::make('matiere')
+                                                            ->label('Matière')
+                                                            ->weight('bold'),
+                                                        Infolists\Components\TextEntry::make('moyenne')
+                                                            ->label('Moyenne Générale')
+                                                            ->badge()
+                                                            ->color(fn($record) => $record['is_passing'] ? 'success' : 'danger'),
+                                                    ]),
+                                            ])
+                                            ->placeholder('Aucune note enregistrée pour ce semestre.'),
+                                    ]),
+                            ])
+                            ->columnSpanFull(),
+                    ])
+                    ->visible(fn() => auth()->user()?->role === 'admin'),
                 Tables\Actions\ViewAction::make()
-                    ->modalHeading('Détails de la Note'),
+                    ->modalHeading('Détails de la Note')
+                    ->visible(fn() => auth()->user()?->role !== 'admin'),
                 Tables\Actions\EditAction::make()
                     ->visible(fn() => auth()->user()?->role !== 'admin'),
                 Tables\Actions\DeleteAction::make()
@@ -401,12 +477,6 @@ class GradeResource extends Resource
                         ->visible(fn() => auth()->user()?->role !== 'admin'),
                 ]),
             ])
-            ->recordUrl(function ($record) {
-                if (auth()->user()?->role === 'admin') {
-                    return StudentResource::getUrl('view', ['record' => $record->student_id]);
-                }
-                return null;
-            })
             ->defaultSort('exam_date', 'desc')
             ->emptyStateHeading('Aucune note enregistrée')
             ->emptyStateDescription('Commencez par ajouter des notes pour les étudiants.')
