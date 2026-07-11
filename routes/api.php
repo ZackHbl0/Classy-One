@@ -61,6 +61,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/planning', [\App\Http\Controllers\PlanningController::class, 'index']);
     // Route::post('/attendance', [\App\Http\Controllers\AttendanceController::class, 'index']); // Disabled – Présences section removed
 
+    // Absences
+    Route::get('/student/absences', [\App\Http\Controllers\Api\AbsenceController::class, 'index']);
+    Route::post('/student/absences/{id}/justify', [\App\Http\Controllers\Api\AbsenceController::class, 'justify']);
+
     // Documents
     Route::post('/documents', [\App\Http\Controllers\DocumentController::class, 'index']);
     Route::post('/documents/create', [\App\Http\Controllers\DocumentController::class, 'store']);

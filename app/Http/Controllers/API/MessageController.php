@@ -42,7 +42,7 @@ class MessageController extends Controller
 
     public function getProfessors()
     {
-        $users = User::whereIn('role', ['professor', 'professeur', 'admin'])->get(['id', 'name', 'role', 'last_seen_at']);
+        $users = User::whereIn('role', ['professor', 'professeur'])->get(['id', 'name', 'role', 'last_seen_at']);
         $users->transform(function ($user) {
             $user->is_online = $user->isOnline();
             $user->last_seen_diff = $user->last_seen_at ? $user->last_seen_at->locale('fr')->diffForHumans() : 'Jamais connecté';

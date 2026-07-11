@@ -1,4 +1,5 @@
-<div class="flex min-h-screen w-full bg-white">
+<div class="flex min-h-screen w-full bg-white relative">
+
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* Absolute Force override of all Typography to Geist */
@@ -12,18 +13,14 @@
 
     <!-- Left Side: Visual / Background -->
     <div class="w-1/2 relative flex flex-col justify-center items-center shadow-2xl z-10 overflow-hidden"
-        style="background-image: url('https://ecole-gestion-omnia.ma/wp-content/uploads/2025/06/A7401725-scaled.jpg'); background-size: cover; background-position: center;">
+        style="background-image: url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1200&auto=format&fit=crop'); background-size: cover; background-position: center;">
 
-        <!-- Navy Blue Overlay exactly #1A3A5D at 80% opacity -->
-        <div class="absolute inset-0 z-10" style="background-color: rgba(26, 58, 93, 0.80);"></div>
+        <!-- Deep Professional Dark Blue/Indigo Gradient Overlay -->
+        <div class="absolute inset-0 z-10"
+            style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 58, 138, 0.85));"></div>
 
-        <div class="relative z-20 flex flex-col items-center justify-center text-center px-12 w-full h-full pb-10">
-
-            <!-- Logo: ClassyOne logo -->
-            <div class="bg-white flex items-center justify-center rounded-xl shadow-lg mb-8"
-                style="width: 64px; height: 64px; padding: 8px;">
-                <img src="<?php echo e(asset('classyone_logo.png')); ?>" alt="ClassyOne" style="max-width: 100%; max-height: 100%; object-fit: contain;">
-            </div>
+        <div
+            class="relative z-20 flex flex-col items-center justify-center text-center px-12 w-full h-full pb-64 lg:pb-[28rem]">
 
             <!-- ClassyOne: Bold and Golden Yellow -->
             <h1 class="font-bold tracking-tighter mb-5 text-[2.5rem]"
@@ -54,9 +51,11 @@
     <!-- Right Side: Form -->
     <div class="w-1/2 flex flex-col items-center justify-center relative px-12 lg:px-20 min-h-screen"
         style="background-color: rgba(228, 228, 228, 0.671);">
+
         <div class="w-full max-w-md mx-auto">
+
             <div class="mb-10 text-left">
-                
+
                 <!-- Bienvenue #0F172A font-600 -->
                 <h2 class="font-semibold tracking-tighter mb-1 text-[#0F172A] !text-[#0F172A]"
                     style="font-size: 1.6rem; color: #0F172A !important; letter-spacing: -0.05em;">Bienvenue</h2>
@@ -202,5 +201,4 @@
             border-color: #0F172A !important;
         }
     </style>
-</div>
-<?php /**PATH C:\xampp\htdocs\Classy-One\resources\views/filament/pages/auth/login.blade.php ENDPATH**/ ?>
+</div><?php /**PATH C:\xampp\htdocs\Classy-One\resources\views/filament/pages/auth/login.blade.php ENDPATH**/ ?>

@@ -53,11 +53,6 @@ class GradeResource extends Resource
     {
         $user = auth()->user();
 
-        // Admin can edit all grades
-        if ($user?->role === 'admin') {
-            return true;
-        }
-
         // Professors can only edit grades they assigned
         return in_array($user?->role, ['professeur', 'prof']) && (int) $record->teacher_id === (int) $user->id;
     }
@@ -286,10 +281,10 @@ class GradeResource extends Resource
                     ->copyable()
                     ->copyMessage('Matricule copié!'),
 
-                Tables\Columns\TextColumn::make('student_name')
+                Tables\Columns\TextColumn::make('student.nom')
                     ->label('Étudiant')
                     ->getStateUsing(fn($record) => "{$record->student->nom} {$record->student->prenom}")
-                    ->searchable(['student.nom', 'student.prenom'])
+                    ->searchable(['nom', 'prenom'])
                     ->sortable()
                     ->weight('bold'),
 

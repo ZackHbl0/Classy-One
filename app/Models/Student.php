@@ -60,6 +60,11 @@ class Student extends Authenticatable
         return $this->hasMany(DocumentRequest::class, 'idStudent', 'idStudent');
     }
 
+    public function absences()
+    {
+        return $this->hasMany(Absence::class, 'student_id', 'idStudent');
+    }
+
     public function notificationReads()
     {
         return $this->hasMany(NotificationRead::class, 'idStudent', 'idStudent');

@@ -14,6 +14,27 @@ class ChatPage extends Page
 
     protected static string $view = 'filament.pages.chat-page';
 
+    public static function canAccess(): bool
+    {
+        $user = Auth::user();
+        
+        if (!$user) {
+            return false;
+        }
+
+        // Si l'utilisateur est un admin ou une secrétaire, on lui refuse l'accès
+        if ($user instanceof \App\Models\User) {
+            return $user->role === 'professeur';
+        }
+
+        // Autoriser l'accès si c'est un étudiant
+        if ($user instanceof \App\Models\Student) {
+            return true;
+        }
+
+        return false;
+    }
+
     public function getHeading(): string|\Illuminate\Contracts\Support\Htmlable
     {
         return '';

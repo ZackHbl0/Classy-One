@@ -71,7 +71,8 @@ class AdminPanelProvider extends PanelProvider
                     ->label('Se déconnecter')
                     ->icon('heroicon-o-arrow-right-on-rectangle')
                     ->url('/admin-logout'),
-            ]);
+            ])
+            ->sidebarCollapsibleOnDesktop();
     }
 
     public function boot(): void
