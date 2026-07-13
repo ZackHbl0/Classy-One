@@ -29,7 +29,8 @@ class ListNotifications extends ListRecords
                         $students = Student::whereIn('idStudent', $data['target_students'])->get();
                         $data['target_ids'] = $data['target_students'];
                         $data['target_summary'] = 'Étudiant(s): ' . $students->pluck('full_name')->take(3)->implode(', ');
-                        if ($students->count() > 3) $data['target_summary'] .= '...';
+                        if ($students->count() > 3)
+                            $data['target_summary'] .= '...';
                     } elseif ($data['target_type'] === 'classes') {
                         $classes = Classe::whereIn('id', $data['target_classes'])->get();
                         $data['target_ids'] = $data['target_classes'];

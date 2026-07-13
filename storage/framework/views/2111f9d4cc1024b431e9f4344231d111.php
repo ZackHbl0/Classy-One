@@ -328,7 +328,32 @@
                             <div :style="(message.sender_type === 'user' && message.sender_id == authUserId) || message.tempId ? 'display: flex; justify-content: flex-end;' : 'display: flex; justify-content: flex-start;'">
                                 <!-- Sent Message (Right) -->
                                 <template x-if="(message.sender_type === 'user' && message.sender_id == authUserId) || message.tempId">
-                                    <div style="background-color: var(--chat-msg-sent-bg); color: var(--chat-msg-sent-text); padding: 0.875rem 1.25rem; border-radius: 1.25rem 1.25rem 0 1.25rem; max-width: 70%; font-size: 0.9375rem; line-height: 1.5; box-shadow: 0 1px 2px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <div style="background-color: var(--chat-msg-sent-bg); color: var(--chat-msg-sent-text); padding: 0.875rem 1.25rem; border-radius: 1.25rem 1.25rem 0 1.25rem; max-width: 70%; font-size: 0.9375rem; line-height: 1.5; box-shadow: 0 1px 2px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 0.5rem; position: relative;" x-data="{ hovered: false }" @mouseenter="hovered = true" @mouseleave="hovered = false">
+                                        
+                                        <!-- Delete Button -->
+                                        <button type="button" x-show="hovered && !message.tempId" @click="deleteMessage(message.id)" style="position: absolute; left: -2.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: #ef4444; cursor: pointer; padding: 0.25rem; opacity: 0.8; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'" title="Supprimer le message">
+                                            <?php if (isset($component)) { $__componentOriginal643fe1b47aec0b76658e1a0200b34b2c = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal643fe1b47aec0b76658e1a0200b34b2c = $attributes; } ?>
+<?php $component = BladeUI\Icons\Components\Svg::resolve([] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('heroicon-o-trash'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\BladeUI\Icons\Components\Svg::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['style' => 'width: 1.25rem; height: 1.25rem;']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal643fe1b47aec0b76658e1a0200b34b2c)): ?>
+<?php $attributes = $__attributesOriginal643fe1b47aec0b76658e1a0200b34b2c; ?>
+<?php unset($__attributesOriginal643fe1b47aec0b76658e1a0200b34b2c); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal643fe1b47aec0b76658e1a0200b34b2c)): ?>
+<?php $component = $__componentOriginal643fe1b47aec0b76658e1a0200b34b2c; ?>
+<?php unset($__componentOriginal643fe1b47aec0b76658e1a0200b34b2c); ?>
+<?php endif; ?>
+                                        </button>
+
                                         <template x-if="message.attachment_url">
                                             <a :href="message.attachment_url" target="_blank" style="display: block; margin-bottom: 0.25rem;">
                                                 <img x-show="message.attachment_url.match(/\.(jpeg|jpg|gif|png)$/i)" :src="message.attachment_url" style="max-width: 280px; max-height: 350px; width: auto; height: auto; object-fit: cover; border-radius: 0.5rem; display: block;">
@@ -632,98 +657,8 @@
                                     </div>
                                 </template>
 
-                                <!-- Recording Mode -->
-                                <template x-if="isRecording">
-                                    <div style="display: flex; align-items: center; flex: 1; width: 100%; padding: 0 0.5rem;">
-                                        <!-- Blinking Dot and Timer -->
-                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                            <div class="animate-pulse-opacity" style="width: 10px; height: 10px; border-radius: 50%; background-color: #ef4444;"></div>
-                                            <span style="color: #ef4444; font-weight: 600; font-variant-numeric: tabular-nums;" x-text="formatDuration(recordingDuration)"></span>
-                                        </div>
-                                        <div style="flex: 1;"></div>
-                                        <!-- Cancel Button -->
-                                        <button type="button" @click="cancelRecording()" style="display: flex; align-items: center; gap: 0.25rem; background: none; border: none; cursor: pointer; color: var(--chat-text-muted); padding: 0.5rem; font-size: 0.875rem;">
-                                            <?php if (isset($component)) { $__componentOriginal643fe1b47aec0b76658e1a0200b34b2c = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal643fe1b47aec0b76658e1a0200b34b2c = $attributes; } ?>
-<?php $component = BladeUI\Icons\Components\Svg::resolve([] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('heroicon-o-trash'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\BladeUI\Icons\Components\Svg::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['style' => 'width: 1.25rem; height: 1.25rem;']); ?>
-<?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginal643fe1b47aec0b76658e1a0200b34b2c)): ?>
-<?php $attributes = $__attributesOriginal643fe1b47aec0b76658e1a0200b34b2c; ?>
-<?php unset($__attributesOriginal643fe1b47aec0b76658e1a0200b34b2c); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginal643fe1b47aec0b76658e1a0200b34b2c)): ?>
-<?php $component = $__componentOriginal643fe1b47aec0b76658e1a0200b34b2c; ?>
-<?php unset($__componentOriginal643fe1b47aec0b76658e1a0200b34b2c); ?>
-<?php endif; ?>
-                                            <span>Annuler</span>
-                                        </button>
-                                    </div>
-                                </template>
-
-                            </div>
-                            
-                            <!-- Mic Button -->
-                            <template x-if="!newMessage.trim() && !attachmentFile && !isRecording">
-                                <button type="button" @click="startRecording()" style="background-color: var(--chat-input-bg); border: 1px solid var(--chat-border); color: var(--chat-text-muted); border-radius: 9999px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; flex-shrink: 0; transition: all 0.2s;">
-                                    <?php if (isset($component)) { $__componentOriginal643fe1b47aec0b76658e1a0200b34b2c = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal643fe1b47aec0b76658e1a0200b34b2c = $attributes; } ?>
-<?php $component = BladeUI\Icons\Components\Svg::resolve([] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('heroicon-s-microphone'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\BladeUI\Icons\Components\Svg::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['style' => 'width: 1.5rem; height: 1.5rem;']); ?>
-<?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginal643fe1b47aec0b76658e1a0200b34b2c)): ?>
-<?php $attributes = $__attributesOriginal643fe1b47aec0b76658e1a0200b34b2c; ?>
-<?php unset($__attributesOriginal643fe1b47aec0b76658e1a0200b34b2c); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginal643fe1b47aec0b76658e1a0200b34b2c)): ?>
-<?php $component = $__componentOriginal643fe1b47aec0b76658e1a0200b34b2c; ?>
-<?php unset($__componentOriginal643fe1b47aec0b76658e1a0200b34b2c); ?>
-<?php endif; ?>
-                                </button>
-                            </template>
-
-                            <!-- Send Audio Button -->
-                            <template x-if="isRecording">
-                                <button type="button" @click="stopAndSendRecording()" style="background-color: #a855f7; border: none; color: white; border-radius: 9999px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; flex-shrink: 0; transition: all 0.2s;">
-                                    <?php if (isset($component)) { $__componentOriginal643fe1b47aec0b76658e1a0200b34b2c = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal643fe1b47aec0b76658e1a0200b34b2c = $attributes; } ?>
-<?php $component = BladeUI\Icons\Components\Svg::resolve([] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('heroicon-s-paper-airplane'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\BladeUI\Icons\Components\Svg::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['style' => 'width: 1.5rem; height: 1.5rem; transform: rotate(-45deg); margin-left: 0.25rem;']); ?>
-<?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginal643fe1b47aec0b76658e1a0200b34b2c)): ?>
-<?php $attributes = $__attributesOriginal643fe1b47aec0b76658e1a0200b34b2c; ?>
-<?php unset($__attributesOriginal643fe1b47aec0b76658e1a0200b34b2c); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginal643fe1b47aec0b76658e1a0200b34b2c)): ?>
-<?php $component = $__componentOriginal643fe1b47aec0b76658e1a0200b34b2c; ?>
-<?php unset($__componentOriginal643fe1b47aec0b76658e1a0200b34b2c); ?>
-<?php endif; ?>
-                                </button>
-                            </template>
-
                             <!-- Send Text Button -->
-                            <template x-if="(newMessage.trim() || attachmentFile) && !isRecording">
+                            <template x-if="newMessage.trim() || attachmentFile">
                                 <button type="submit" :disabled="sending" 
                                         style="background-color: #a855f7; color: white; border-radius: 9999px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; flex-shrink: 0; transition: opacity 0.2s;"
                                         :style="sending ? 'opacity: 0.5;' : ''">
@@ -814,51 +749,6 @@
                     }
                 },
 
-                startRecording() {
-                    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-                        this.mediaRecorder = new MediaRecorder(stream);
-                        this.audioChunks = [];
-
-                        this.mediaRecorder.ondataavailable = e => {
-                            if (e.data.size > 0) this.audioChunks.push(e.data);
-                        };
-
-                        this.mediaRecorder.start();
-                        this.isRecording = true;
-                        this.recordingDuration = 0;
-                        this.recordingTimer = setInterval(() => {
-                            this.recordingDuration++;
-                        }, 1000);
-                    }).catch(err => {
-                        console.error('Error accessing microphone', err);
-                        alert("Impossible d'accéder au microphone.");
-                    });
-                },
-
-                stopAndSendRecording() {
-                    if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') return;
-                    
-                    this.mediaRecorder.onstop = () => {
-                        this.audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-                        this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
-                        this.isRecording = false;
-                        clearInterval(this.recordingTimer);
-                        this.sendMessage();
-                    };
-                    this.mediaRecorder.stop();
-                },
-
-                cancelRecording() {
-                    if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') return;
-                    this.mediaRecorder.onstop = () => {
-                        this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
-                        this.isRecording = false;
-                        clearInterval(this.recordingTimer);
-                        this.audioBlob = null;
-                        this.audioChunks = [];
-                    };
-                    this.mediaRecorder.stop();
-                },
 
                 async fetchStudents() {
                     this.loadingStudents = true;
@@ -932,21 +822,20 @@
                 },
 
                 async sendMessage() {
-                    if ((!this.newMessage.trim() && !this.attachmentFile && !this.audioBlob) || !this.selectedStudent || this.sending || this.isRecording) return;
+                    if (!this.newMessage.trim() && !this.attachmentFile && !this.audioBlob) return;
+                    if (!this.selectedStudent) return;
 
                     this.sending = true;
-
-                    const formData = new FormData();
+                    
+                    let formData = new FormData();
                     formData.append('receiver_id', this.selectedStudent.id);
-                    if (this.selectedStudent.role === 'group') {
-                        formData.append('receiver_type', 'group');
-                    }
+                    formData.append('receiver_type', this.selectedStudent.role === 'group' ? 'group' : 'student');
+                    
                     if (this.newMessage.trim()) formData.append('message', this.newMessage.trim());
                     if (this.attachmentFile) formData.append('attachment', this.attachmentFile);
-                    if (this.audioBlob) formData.append('audio', this.audioBlob, 'audio_message.webm');
 
                     // Optimistic update (only for text)
-                    if (this.newMessage.trim() && !this.attachmentFile && !this.audioBlob) {
+                    if (this.newMessage.trim() && !this.attachmentFile) {
                         const now = new Date();
                         const formattedTime = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
                         this.messages.push({
@@ -964,10 +853,7 @@
 
                     // Clear inputs immediately
                     this.newMessage = '';
-                    this.attachmentFile = null;
-                    this.audioBlob = null;
-                    if (this.$refs.fileInput) this.$refs.fileInput.value = '';
-
+                    
                     try {
                         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
                         
@@ -1001,6 +887,34 @@
                             this.$refs.messagesContainer.scrollTop = this.$refs.messagesContainer.scrollHeight;
                         }
                     }, 100);
+                },
+
+                async deleteMessage(messageId) {
+                    if (!confirm('Voulez-vous vraiment supprimer ce message ?')) return;
+
+                    try {
+                        const csrfToken = document.querySelector('meta[name=\"csrf-token\"]')?.getAttribute('content');
+                        const targetUrl = this.selectedStudent.role === 'group' 
+                            ? `/web-chat/messages/${messageId}?target_type=group` 
+                            : `/web-chat/messages/${messageId}`;
+                            
+                        const response = await fetch(targetUrl, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+
+                        if (response.ok) {
+                            this.messages = this.messages.filter(m => m.id !== messageId);
+                        } else {
+                            alert('Erreur lors de la suppression.');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting message:', error);
+                    }
                 }
             }));
         });

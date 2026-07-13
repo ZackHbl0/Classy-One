@@ -60,7 +60,7 @@ class NotificationController extends Controller
                 'categorie' => $n->categorie,
                 'pieceJointe' => $n->pieceJointe,
                 'isRead' => (bool) $n->is_read,
-                'createdAt' => \Carbon\Carbon::parse($n->created_at)->toIso8601String()
+                'createdAt' => $n->created_at ? \Carbon\Carbon::parse($n->created_at)->toIso8601String() : null
             ];
         });
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Grade;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class GradeController extends Controller
 {
@@ -17,12 +18,14 @@ class GradeController extends Controller
     {
         $student = $request->user();
 
-        // Fetch all grades for this student with relationships
-        $grades = Grade::with(['course', 'teacher'])
-            ->where('student_id', $student->idStudent)
-            ->orderBy('exam_date', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        // Fetch all grades for this student with relationships, cached for 30 minutes
+        $grades = Cache::remember('grades_' . $student->idStudent, now()->addMinutes(30), function () use ($student) {
+            return Grade::with(['course', 'teacher'])
+                ->where('student_id', $student->idStudent)
+                ->orderBy('exam_date', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->get();
+        });
 
         if ($grades->isEmpty()) {
             return response()->json([

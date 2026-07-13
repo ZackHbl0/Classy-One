@@ -16,7 +16,7 @@ Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login']);
 Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register']);
 Route::get('/test-push/{matricule}', [\App\Http\Controllers\NotificationController::class, 'sendDirectPush']);
 
-// Media proxy for CORS
+// Media proxy for CORS with explicit type
 Route::get('/media/{type}/{filename}', function ($type, $filename) {
     // Only allow specific types for security
     if (!in_array($type, ['attachments', 'audio'])) {
@@ -24,6 +24,24 @@ Route::get('/media/{type}/{filename}', function ($type, $filename) {
     }
     
     $path = storage_path('app/public/chat/' . $type . '/' . $filename);
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    
+    $mimeType = mime_content_type($path);
+    return response()->file($path, [
+        'Content-Type' => $mimeType,
+        'Access-Control-Allow-Origin' => '*',
+        'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+    ]);
+});
+
+// Fallback Media proxy without explicit type (auto-detects)
+Route::get('/media/{filename}', function ($filename) {
+    $path = storage_path('app/public/chat/attachments/' . $filename);
+    if (!file_exists($path)) {
+        $path = storage_path('app/public/chat/audio/' . $filename);
+    }
     if (!file_exists($path)) {
         abort(404);
     }
@@ -91,6 +109,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/chat/history/{userId}', [\App\Http\Controllers\API\MessageController::class, 'getChatHistory']);
     Route::post('/chat/send', [\App\Http\Controllers\API\MessageController::class, 'sendMessage']);
     Route::post('/chat/groups', [\App\Http\Controllers\API\MessageController::class, 'createGroup']);
+    Route::delete('/chat/messages/{id}', [\App\Http\Controllers\API\MessageController::class, 'deleteMessage']);
 
     // ─── Admin-only routes ──────────────────────────────────────────
     // Accessing /api/admin/* with a Secrétaire token will return 403.

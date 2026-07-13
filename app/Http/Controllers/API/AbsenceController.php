@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class AbsenceController extends Controller
 {
@@ -15,24 +16,26 @@ class AbsenceController extends Controller
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        $absences = $student->absences()
-            ->with(['classe', 'prof'])
-            ->orderBy('date', 'desc')
-            ->get()
-            ->map(function ($absence) {
-                return [
-                    'id' => $absence->id,
-                    'date' => $absence->date->format('Y-m-d'),
-                    'seance' => $absence->seance,
-                    'matiere' => $absence->matiere,
-                    'is_justified' => $absence->is_justified,
-                    'justification_reason' => $absence->justification_reason,
-                    'student_explanation' => $absence->student_explanation,
-                    'status' => $absence->status,
-                    'professeur' => $absence->prof ? $absence->prof->name : null,
-                    'classe' => $absence->classe ? $absence->classe->nomClasse : null,
-                ];
-            });
+        $absences = Cache::remember('absences_' . $student->idStudent, now()->addMinutes(30), function () use ($student) {
+            return $student->absences()
+                ->with(['classe', 'prof'])
+                ->orderBy('date', 'desc')
+                ->get()
+                ->map(function ($absence) {
+                    return [
+                        'id' => $absence->id,
+                        'date' => $absence->date->format('Y-m-d'),
+                        'seance' => $absence->seance,
+                        'matiere' => $absence->matiere,
+                        'is_justified' => $absence->is_justified,
+                        'justification_reason' => $absence->justification_reason,
+                        'student_explanation' => $absence->student_explanation,
+                        'status' => $absence->status,
+                        'professeur' => $absence->prof ? $absence->prof->name : null,
+                        'classe' => $absence->classe ? $absence->classe->nomClasse : null,
+                    ];
+                });
+        });
 
         return response()->json([
             'status' => 'success',

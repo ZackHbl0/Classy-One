@@ -207,6 +207,45 @@ class MessageController extends Controller
         return response()->json($messages);
     }
 
+    public function deleteMessage($id)
+    {
+        $user = Auth::guard(Auth::guard('sanctum')->check() ? 'sanctum' : 'web')->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Non autorisé.'], 401);
+        }
+
+        $message = Message::find($id);
+
+        if (!$message) {
+            return response()->json(['message' => 'Message introuvable.'], 404);
+        }
+
+        $userType = ($user instanceof \App\Models\Student) ? 'student' : 'user';
+        $userId = ($user instanceof \App\Models\Student) ? $user->idStudent : $user->id;
+
+        // Check if the authenticated user is the sender
+        if ($message->sender_type !== $userType || $message->sender_id !== $userId) {
+            return response()->json(['message' => 'Non autorisé à supprimer ce message.'], 403);
+        }
+
+        // Delete attachments from storage if they exist
+        if ($message->attachment_url) {
+            $attachmentPath = str_replace(url('api/media') . '/', '', $message->attachment_url);
+            \Illuminate\Support\Facades\Storage::disk('public')->delete('chat/attachments/' . $attachmentPath);
+        }
+
+        if ($message->audio_url) {
+            $audioPath = str_replace(url('api/media') . '/', '', $message->audio_url);
+            \Illuminate\Support\Facades\Storage::disk('public')->delete('chat/audio/' . $audioPath);
+        }
+
+        // Delete the message from the database
+        $message->delete();
+
+        return response()->json(['success' => true, 'message' => 'Message supprimé avec succès.']);
+    }
+
     public function sendMessage(Request $request)
     {
         $currentId   = Auth::id();
@@ -224,7 +263,6 @@ class MessageController extends Controller
                 'receiver_id' => "required|exists:conversations,id",
                 'message'     => 'nullable|string',
                 'attachment'  => 'nullable|file|max:10240',
-                'audio'       => 'nullable|file|max:10240',
             ]);
         } else {
             $receiverTable = $receiverType === 'student' ? 'student' : 'users';
@@ -234,7 +272,6 @@ class MessageController extends Controller
                 'receiver_id' => "required|exists:{$receiverTable},{$receiverPk}",
                 'message'     => 'nullable|string',
                 'attachment'  => 'nullable|file|max:10240',
-                'audio'       => 'nullable|file|max:10240',
             ]);
         }
 
@@ -242,14 +279,10 @@ class MessageController extends Controller
         if ($request->hasFile('attachment')) {
             $path = $request->file('attachment')->store('chat/attachments', 'public');
             // Store a relative URL that hits our API proxy for CORS support
-            $attachmentUrl = url('api/media/' . basename($path));
+            $attachmentUrl = url('api/media/attachments/' . basename($path));
         }
 
-        $audioUrl = null;
-        if ($request->hasFile('audio') && $request->file('audio')->isValid()) {
-            $path = $request->file('audio')->store('chat/audio', 'public');
-            $audioUrl = url('api/media/' . basename($path));
-        }
+
 
         $message = Message::create([
             'sender_id'      => $currentId,
@@ -259,7 +292,6 @@ class MessageController extends Controller
             'conversation_id'=> $receiverType === 'group' ? $request->receiver_id : null,
             'message'        => $request->message ?? '',
             'attachment_url' => $attachmentUrl,
-            'audio_url'      => $audioUrl,
             'is_read'        => false,
         ]);
 

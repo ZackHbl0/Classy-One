@@ -22,7 +22,7 @@ class NotificationFormWidget extends Widget implements HasForms
 
     protected static string $view = 'filament.resources.notification-resource.widgets.notification-form-widget';
 
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     public ?array $data = [];
 
@@ -106,7 +106,8 @@ class NotificationFormWidget extends Widget implements HasForms
             $students = \App\Models\Student::whereIn('idStudent', $data['target_students'])->get();
             $targetIds = $data['target_students'];
             $targetSummary = 'Étudiant(s): ' . $students->pluck('full_name')->take(3)->implode(', ');
-            if ($students->count() > 3) $targetSummary .= '...';
+            if ($students->count() > 3)
+                $targetSummary .= '...';
         } elseif ($data['target_type'] === 'classes') {
             $classes = \App\Models\Classe::whereIn('id', $data['target_classes'])->get();
             $targetIds = $data['target_classes'];
