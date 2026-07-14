@@ -17,7 +17,7 @@ class ChatPage extends Page
     public static function canAccess(): bool
     {
         $user = Auth::user();
-        
+
         if (!$user) {
             return false;
         }
@@ -70,7 +70,16 @@ class ChatPage extends Page
                             return [$student->idStudent => trim($student->nom . ' ' . $student->prenom)];
                         }))
                         ->required()
-                        ->searchable(),
+                        ->searchable()
+                        ->suffixAction(
+                            \Filament\Forms\Components\Actions\Action::make('selectAll')
+                                ->icon('heroicon-m-check-badge')
+                                ->label('Tout sélectionner')
+                                ->tooltip('Sélectionner tous les étudiants')
+                                ->action(function (\Filament\Forms\Set $set) {
+                                    $set('student_ids', \App\Models\Student::pluck('idStudent')->toArray());
+                                })
+                        ),
                 ])
                 ->action(function (array $data) {
                     $conversation = \App\Models\Conversation::create([
@@ -80,7 +89,7 @@ class ChatPage extends Page
                     ]);
 
                     $conversation->users()->attach(Auth::id());
-                    
+
                     if (!empty($data['student_ids'])) {
                         $conversation->students()->attach($data['student_ids']);
                     }
@@ -89,7 +98,7 @@ class ChatPage extends Page
                         ->title('Groupe créé avec succès')
                         ->success()
                         ->send();
-                    
+
                     $this->dispatch('group-created');
                 })
         ];
@@ -101,7 +110,7 @@ class ChatPage extends Page
             ->modalHeading('Informations du groupe')
             ->modalSubmitAction(false)
             ->modalCancelActionLabel('Fermer')
-            ->modalContent(fn (array $arguments) => view('filament.chat.group-info', [
+            ->modalContent(fn(array $arguments) => view('filament.chat.group-info', [
                 'group' => \App\Models\Conversation::with(['users', 'students'])->find($arguments['id'])
             ]));
     }

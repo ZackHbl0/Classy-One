@@ -67,6 +67,8 @@ class ProfessorStudentResource extends Resource
             // Get class IDs from courses taught by this professor
             $classIds = Course::where('professor_id', $user->id)
                 ->pluck('classe_id')
+                ->push($user->classe_id)
+                ->filter()
                 ->unique()
                 ->toArray();
 
@@ -209,6 +211,8 @@ class ProfessorStudentResource extends Resource
         if ($user && $user->role === 'professeur') {
             $classIds = Course::where('professor_id', $user->id)
                 ->pluck('classe_id')
+                ->push($user->classe_id)
+                ->filter()
                 ->unique()
                 ->toArray();
 

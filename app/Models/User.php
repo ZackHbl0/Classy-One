@@ -26,6 +26,7 @@ class User extends Authenticatable implements FilamentUser
         'password',
         'role',
         'classe_id',
+        'matieres',
     ];
 
     /**
@@ -49,6 +50,7 @@ class User extends Authenticatable implements FilamentUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'last_seen_at' => 'datetime',
+            'matieres' => 'array',
         ];
     }
 
@@ -106,9 +108,8 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        // Allow both admins and secretaires with an OSBT email domain
-        return str_ends_with($this->email, '@osbt.ma') ||
-            str_ends_with($this->email, '@osbt.com');
+        // Allow users to log in based on roles instead of checking specific email domains
+        return in_array($this->role, ['admin', 'secretaire', 'professeur', 'prof']);
     }
 
     public function conversations()

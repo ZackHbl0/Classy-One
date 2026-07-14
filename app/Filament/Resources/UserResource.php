@@ -111,9 +111,23 @@ class UserResource extends Resource
                         ->searchable()
                         ->preload()
                         ->native(false)
-                        ->visible(fn (Get $get): bool => $get('role') === 'professeur')
-                        ->required(fn (Get $get): bool => $get('role') === 'professeur')
-                        ->helperText('Requis pour les professeurs (ex. DEV201).'),
+                        ->visible(fn(Get $get): bool => $get('role') === 'professeur')
+                        ->required(fn(Get $get): bool => $get('role') === 'professeur')
+                        ->helperText('Requis pour les professeurs. La classe représente la filière assignée (ex. DEV201).'),
+
+                    \Filament\Forms\Components\Placeholder::make('filiere_info')
+                        ->label('Note')
+                        ->content('La classe sélectionnée ci-dessus détermine la filière du professeur. Les étudiants et les cours visibles seront filtrés en conséquence.')
+                        ->visible(fn(Get $get): bool => $get('role') === 'professeur')
+                        ->columnSpanFull(),
+
+                    Forms\Components\TagsInput::make('matieres')
+                        ->label('Matière(s) assignée(s)')
+                        ->separator(',')
+                        ->placeholder('Ajouter une matière (ex: Mathématiques, C#...)')
+                        ->helperText('Saisissez une matière puis appuyez sur Entrée pour en ajouter d\'autres.')
+                        ->visible(fn(Get $get): bool => $get('role') === 'professeur')
+                        ->columnSpanFull(),
                 ])
                 ->columns(2),
         ]);

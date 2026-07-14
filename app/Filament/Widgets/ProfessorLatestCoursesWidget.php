@@ -60,9 +60,8 @@ class ProfessorLatestCoursesWidget extends BaseWidget
                     ->formatStateUsing(function ($state) {
                         return $state ? '✓ Uploaded' : '✗ None';
                     })
-                    ->color(fn($state) => str_contains($state, '✓') ? 'success' : 'danger'),
+                    ->color(fn($state) => $state ? 'success' : 'danger'),
             ])
-            ->paginated(false)
-            ->striped();
+            ->paginated(false);
     }
 }

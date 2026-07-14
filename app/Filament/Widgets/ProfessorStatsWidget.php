@@ -24,7 +24,8 @@ class ProfessorStatsWidget extends BaseWidget
 
     protected function getStats(): array
     {
-        $professorId = auth()->id();
+        $user = auth()->user();
+        $professorId = $user ? $user->id : null;
 
         // Total courses uploaded by this professor
         $totalCourses = Course::where('professor_id', $professorId)->count();
@@ -32,6 +33,8 @@ class ProfessorStatsWidget extends BaseWidget
         // Get all classes assigned to this professor's courses
         $classesIds = Course::where('professor_id', $professorId)
             ->pluck('classe_id')
+            ->push($user ? $user->classe_id : null)
+            ->filter()
             ->unique();
 
         // Total students enrolled in those classes

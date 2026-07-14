@@ -75,8 +75,8 @@ class GradeResource extends Resource
 
         if ($user && $user->role === 'admin') {
             $query->selectRaw('student_table.idStudent as id, student_table.idStudent as student_id, MAX(grades.semester) as semester, MAX(grades.classe_id) as classe_id, MAX(grades.teacher_id) as teacher_id, MAX(grades.exam_date) as exam_date')
-                  ->rightJoin('student as student_table', 'grades.student_id', '=', 'student_table.idStudent')
-                  ->groupBy('student_table.idStudent');
+                ->rightJoin('student as student_table', 'grades.student_id', '=', 'student_table.idStudent')
+                ->groupBy('student_table.idStudent');
         }
 
         return $query;
@@ -98,6 +98,8 @@ class GradeResource extends Resource
                                     // Professors: students from their classes
                                     $classIds = Course::where('professor_id', $user->id)
                                         ->pluck('classe_id')
+                                        ->push($user->classe_id)
+                                        ->filter()
                                         ->unique()
                                         ->toArray();
 
@@ -484,6 +486,7 @@ class GradeResource extends Resource
             'index' => Pages\ListGrades::route('/'),
             'create' => Pages\CreateGrade::route('/create'),
             'edit' => Pages\EditGrade::route('/{record}/edit'),
+            'student' => Pages\ViewStudentGrades::route('/student/{record}'),
         ];
     }
 

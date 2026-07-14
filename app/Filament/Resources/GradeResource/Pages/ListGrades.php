@@ -3,40 +3,90 @@
 namespace App\Filament\Resources\GradeResource\Pages;
 
 use App\Filament\Resources\GradeResource;
-use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use App\Models\Course;
+use App\Models\Student;
+use Filament\Resources\Pages\Page;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Actions\Action;
 
-class ListGrades extends ListRecords
+class ListGrades extends Page implements HasTable
 {
+    use InteractsWithTable;
+
     protected static string $resource = GradeResource::class;
 
-    protected function getHeaderActions(): array
+    // We will use a simple blade view that just renders $this->table
+    protected static string $view = 'filament.resources.grade-resource.pages.list-grades';
+
+    public function table(Table $table): Table
     {
-        return [
-            Actions\CreateAction::make()
-                ->label('Ajouter une Note')
-                ->icon('heroicon-o-plus'),
-        ];
+        return $table
+            ->query(function () {
+                $user = auth()->user();
+                if ($user && in_array($user->role, ['professeur', 'prof'])) {
+                    $classIds = Course::where('professor_id', $user->id)
+                        ->pluck('classe_id')
+                        ->push($user->classe_id)
+                        ->filter()
+                        ->unique()
+                        ->toArray();
+
+                    return Student::whereHas('registres', function ($q) use ($classIds) {
+                        $q->whereIn('Cla_id', $classIds);
+                    });
+                }
+
+                return Student::query();
+            })
+            ->columns([
+                TextColumn::make('matricule')
+                    ->label('Matricule')
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->color('gray'),
+
+                TextColumn::make('nom')
+                    ->label('Nom')
+                    ->searchable(['nom'])
+                    ->sortable()
+                    ->weight('bold'),
+
+                TextColumn::make('prenom')
+                    ->label('Prénom')
+                    ->searchable(['prenom'])
+                    ->sortable(),
+
+                TextColumn::make('classe.nomClasse')
+                    ->label('Classe')
+                    ->badge()
+                    ->color('success'),
+
+                TextColumn::make('telephone')
+                    ->label('Téléphone')
+                    ->searchable()
+                    ->icon('heroicon-m-phone'),
+            ])
+            ->actions([
+                Action::make('voir_notes')
+                    ->label('Voir Notes')
+                    ->icon('heroicon-o-book-open')
+                    ->button()
+                    ->color('primary')
+                    ->url(fn(Student $record): string => GradeResource::getUrl('student', ['record' => $record->idStudent]))
+            ]);
     }
 
     public function getTitle(): string
-    {
-        return 'Gestion des Notes';
-    }
-
-    public function getHeading(): string
     {
         return 'Notes des Étudiants';
     }
 
     public function getSubheading(): ?string
     {
-        $role = auth()->user()?->role;
-
-        return match ($role) {
-            'professeur' => 'Notes des étudiants dans vos classes',
-            'admin', 'secretaire' => 'Toutes les notes de tous les étudiants',
-            default => null,
-        };
+        return 'Sélectionnez un étudiant pour voir et gérer ses notes.';
     }
 }
