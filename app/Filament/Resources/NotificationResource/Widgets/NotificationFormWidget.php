@@ -121,56 +121,31 @@ class NotificationFormWidget extends Widget implements HasForms
             $students = Student::all();
         }
 
-        // Save to DB
-        NotificationModel::create([
-            'titre' => $data['titre'],
-            'message' => $data['message'],
-            'categorie' => $data['categorie'],
-            'target_type' => $data['target_type'],
-            'target_ids' => $targetIds,
-            'target_summary' => $targetSummary,
-        ]);
-
-        foreach ($students as $student) {
-            if ($student->fcmToken) {
-                $tokens[] = $student->fcmToken;
-            }
-        }
-
-        if (empty($tokens)) {
-            FilamentNotification::make()
-                ->title('Information')
-                ->body('Notification enregistrée dans l\'historique, mais aucun étudiant cible n\'a de token FCM pour le push.')
-                ->warning()
-                ->send();
-
-            $this->form->fill();
-            $this->dispatch('refreshNotificationsTable');
-            return;
-        }
-
-        $message = CloudMessage::new()->withNotification([
-            'title' => $data['titre'],
-            'body' => $data['message'],
-        ]);
-
+        // Save to DB (this automatically triggers the push notification via Notification model booted hook)
         try {
-            $messaging->sendMulticast($message, $tokens);
+            NotificationModel::create([
+                'titre' => $data['titre'],
+                'message' => $data['message'],
+                'categorie' => $data['categorie'],
+                'target_type' => $data['target_type'],
+                'target_ids' => $targetIds,
+                'target_summary' => $targetSummary,
+            ]);
+
             FilamentNotification::make()
                 ->title('Succès')
                 ->body('Notification envoyée et enregistrée.')
                 ->success()
                 ->send();
-            $this->form->fill();
-            $this->dispatch('refreshNotificationsTable');
         } catch (\Exception $e) {
             FilamentNotification::make()
-                ->title('Erreur Push')
-                ->body('Notification enregistrée, mais échec de l\'envoi push : ' . $e->getMessage())
+                ->title('Erreur')
+                ->body('Impossible d\'enregistrer la notification : ' . $e->getMessage())
                 ->danger()
                 ->send();
-            $this->form->fill();
-            $this->dispatch('refreshNotificationsTable');
         }
+
+        $this->form->fill();
+        $this->dispatch('refreshNotificationsTable');
     }
 }

@@ -18,8 +18,15 @@ class DashboardController extends Controller
 
 
         // Find the class ID for the student for filtering
-        $registre = \App\Models\Registre::where('idStudent', $student->idStudent)->first();
+        $registre = \App\Models\Registre::with('classe')->where('idStudent', $student->idStudent)->first();
         $classe_id = $registre ? (string) $registre->Cla_id : null;
+        
+        // Append class name to the student model for the frontend
+        if ($registre && $registre->classe) {
+            $student->classe = $registre->classe->nomClasse;
+        } else {
+            $student->classe = '';
+        }
 
         // Urgent notifications (unread + filtered)
         $notifications = Notification::whereDoesntHave('reads', function ($query) use ($student) {
@@ -197,12 +204,18 @@ class DashboardController extends Controller
             ];
         });
 
+        $absencesCount = \App\Models\Absence::where('student_id', $student->idStudent)->count();
+        $moyenne = \App\Models\Grade::where('student_id', $student->idStudent)->avg('note');
+        $moyenneFormatted = $moyenne ? number_format($moyenne, 2, '.', '') . ' / 20' : 'N/A';
+
         return response()->json([
             "success" => true,
             "data" => [
                 "student" => $student,
                 "stats" => [
                     "dernier_paiement" => $paymentStatusText,
+                    "absences_count" => $absencesCount,
+                    "moyenne" => $moyenneFormatted,
                 ],
                 "urgentNotifications" => $mappedNotifications,
                 "planning" => $todaySessions,

@@ -79,7 +79,8 @@ class FcmService
             $message = CloudMessage::new()
                 ->withNotification(FirebaseNotification::create(
                     $notification->titre,
-                    $notification->message
+                    $notification->message,
+                    $notification->pieceJointe ? asset('storage/' . $notification->pieceJointe) : null
                 ))
                 ->withData([
                     'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
@@ -89,13 +90,16 @@ class FcmService
                 ->withAndroidConfig([
                     'priority' => 'high',
                     'notification' => [
-                        'channel_id' => 'high_importance_channel',
+                        'channel_id' => 'classy_one_channel_v1',
                         'sound' => 'default',
                         'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
-                        'icon' => 'ic_launcher',
+                        'icon' => '@mipmap/ic_launcher',
                     ],
                 ])
                 ->withApnsConfig([
+                    'headers' => [
+                        'apns-priority' => '10',
+                    ],
                     'payload' => [
                         'aps' => [
                             'content-available' => 1,

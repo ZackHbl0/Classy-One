@@ -19,6 +19,7 @@ class Student extends Authenticatable
         'prenom',
         'password',
         'telephone',
+        'numero_tuteur',
         'fcmToken',
         'event_notifications',
         'payment_notifications',

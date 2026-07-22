@@ -105,15 +105,16 @@ class UserResource extends Resource
                         ->native(false)
                         ->helperText('Les Secrétaires ont un accès limité sans données financières. Les Professeurs peuvent publier des cours pour leur classe assignée.'),
 
-                    Forms\Components\Select::make('classe_id')
-                        ->label('Classe assignée')
-                        ->relationship('classe', 'nomClasse')
+                    Forms\Components\Select::make('classes')
+                        ->label('Classes assignées')
+                        ->relationship('classes', 'nomClasse')
+                        ->multiple()
                         ->searchable()
                         ->preload()
                         ->native(false)
-                        ->visible(fn(Get $get): bool => $get('role') === 'professeur')
-                        ->required(fn(Get $get): bool => $get('role') === 'professeur')
-                        ->helperText('Requis pour les professeurs. La classe représente la filière assignée (ex. DEV201).'),
+                        ->visible(fn(Get $get): bool => in_array($get('role'), ['professeur', 'prof']))
+                        ->required(fn(Get $get): bool => in_array($get('role'), ['professeur', 'prof']))
+                        ->helperText('Requis pour les professeurs. Vous pouvez assigner plusieurs classes.'),
 
                     \Filament\Forms\Components\Placeholder::make('filiere_info')
                         ->label('Note')
@@ -163,8 +164,8 @@ class UserResource extends Resource
                         default      => ucfirst($state),
                     }),
 
-                Tables\Columns\TextColumn::make('classe.nomClasse')
-                    ->label('Classe')
+                Tables\Columns\TextColumn::make('classes.nomClasse')
+                    ->label('Classes')
                     ->badge()
                     ->color('info')
                     ->placeholder('—')

@@ -178,49 +178,75 @@ class AdminPanelProvider extends PanelProvider
                         box-shadow: none !important;
                     }
                     
-                    /* Sidebar Items Active state customization */
-                    html:not(.dark) .fi-sidebar-item-active > a, 
-                    html:not(.dark) .fi-sidebar-item-active > button {
-                        background-color: #f0fdf4 !important;
-                        border-left: 4px solid #0f4c3a !important;
-                        border-radius: 0 0.5rem 0.5rem 0 !important;
-                        margin-left: -0.5rem; 
+                    /* Sidebar Items Active state customization (Image 2 style) for both modes */
+                    .fi-sidebar-item-active > a, 
+                    .fi-sidebar-item-active > button {
+                        background: linear-gradient(90deg, #0f4c3a 0%, #1a8f6a 100%) !important;
+                        border-left: none !important;
+                        border-radius: 0.75rem !important;
+                        box-shadow: 0 4px 10px -2px rgba(15, 76, 58, 0.3) !important;
+                        margin-left: 0; 
                     }
-                    html:not(.dark) .fi-sidebar-item-active .fi-sidebar-item-label, 
-                    html:not(.dark) .fi-sidebar-item-active .fi-icon {
-                        color: #0f4c3a !important;
-                        font-weight: 600 !important;
+                    .fi-sidebar-item-active .fi-sidebar-item-label, 
+                    .fi-sidebar-item-active .fi-sidebar-item-icon,
+                    .fi-sidebar-item-active .fi-sidebar-item-icon svg,
+                    .fi-sidebar-item-active .fi-sidebar-item-icon * {
+                        color: #ffffff !important;
+                        font-weight: 500 !important;
+                    }
+                    
+                    /* Sidebar collapse button */
+                    html:not(.dark) .fi-sidebar-collapse-btn {
+                        background-color: #f8fafc !important;
+                        border-radius: 9999px !important;
+                    }
+                    
+                    /* Optional subtle background pattern on sidebar */
+                    html:not(.dark) .fi-sidebar {
+                        background-image: radial-gradient(circle at 50% 100%, #f0fdf4 0%, transparent 50%) !important;
+                        background-repeat: no-repeat;
+                        background-position: bottom center;
+                    }
+
+                    /* --- MODERN & CLEAN DASHBOARD OVERRIDES --- */
+                    
+                    /* Global Widgets & Tables (Remove borders, add soft shadows) */
+                    .fi-wi, .fi-ta {
+                        border: none !important;
+                        border-radius: 1.25rem !important;
+                    }
+                    html:not(.dark) .fi-wi, html:not(.dark) .fi-ta {
+                        background-color: #ffffff !important;
+                        box-shadow: 0 10px 40px -10px rgba(0,0,0,0.04) !important;
+                    }
+                    .dark .fi-wi, .dark .fi-ta {
+                        background-color: rgba(255, 255, 255, 0.02) !important;
+                        box-shadow: none !important;
+                        border: 1px solid rgba(255,255,255,0.05) !important;
                     }
 
                     /* Stat/Overview Cards */
-                    html:not(.dark) .fi-wi-stats-overview-stat {
-                        background-color: #ffffff !important;
+                    .fi-wi-stats-overview-stat {
                         border: none !important;
                         border-radius: 1rem !important;
-                        box-shadow: 0 4px 20px -2px rgba(0,0,0,0.03) !important;
-                        position: relative;
-                        overflow: hidden;
+                    }
+                    html:not(.dark) .fi-wi-stats-overview-stat {
+                        background-color: #ffffff !important;
+                        box-shadow: 0 4px 20px -2px rgba(0,0,0,0.02) !important;
+                    }
+                    .dark .fi-wi-stats-overview-stat {
+                        background-color: rgba(255, 255, 255, 0.03) !important;
+                        border: 1px solid rgba(255,255,255,0.05) !important;
                     }
                     
-                    /* Both modes: line below stat cards */
-                    .fi-wi-stats-overview-stat::after {
-                        content: "";
-                        position: absolute;
-                        bottom: 0;
-                        left: 10%;
-                        right: 10%;
-                        height: 3px;
-                        border-radius: 99px 99px 0 0;
-                    }
-                    div[style*="--c-50"]::after, .fi-color-primary::after, .fi-color-custom::after { background-color: var(--c-500, #0f4c3a); }
-                    div[style*="--c-500"]::after { background-color: var(--c-500); }
-                    
-                    html:not(.dark) .fi-wi-stats-overview-stat-value {
+                    /* Values in Stat Cards */
+                    .fi-wi-stats-overview-stat-value {
                         font-size: 2.25rem !important;
+                        font-weight: 600 !important;
+                        letter-spacing: -0.025em;
+                    }
+                    html:not(.dark) .fi-wi-stats-overview-stat-value {
                         color: #0f172a !important;
-                        font-weight: 700 !important;
-                        margin-top: 0.25rem !important;
-                        margin-bottom: 0.25rem !important;
                     }
 
                     /* Table Overrides */
@@ -237,41 +263,73 @@ class AdminPanelProvider extends PanelProvider
                         text-overflow: ellipsis !important;
                         max-width: 20rem;
                     }
-                    html:not(.dark) .fi-ta {
-                        background-color: #ffffff !important;
-                        border-radius: 1rem !important;
-                        border: 1px solid #f1f5f9 !important;
-                        box-shadow: 0 4px 20px -2px rgba(0,0,0,0.03) !important;
-                    }
+                    
+                    /* Table Headers */
                     html:not(.dark) .fi-ta-header {
-                        border-bottom: 1px solid #f1f5f9 !important;
-                        background-color: #ffffff !important;
+                        border-bottom: none !important;
                         padding: 1.5rem !important;
+                        background-color: transparent !important;
                     }
-                    html:not(.dark) .fi-ta-header-heading {
+                    .dark .fi-ta-header {
+                        border-bottom: none !important;
+                        padding: 1.5rem !important;
+                        background-color: transparent !important;
+                    }
+                    .fi-ta-header-heading {
                         font-weight: 600 !important;
                         font-size: 1.1rem !important;
+                    }
+                    html:not(.dark) .fi-ta-header-heading {
                         color: #0f172a !important;
                     }
-                    html:not(.dark) .fi-ta-table th {
+                    
+                    /* Table Columns / Rows (Remove horizontal lines) */
+                    .fi-ta-table th {
                         font-size: 0.75rem !important;
-                        color: #94a3b8 !important;
-                        text-transform: uppercase !important;
-                        letter-spacing: 0.05em !important;
-                        background: #ffffff !important;
-                        border-bottom: 1px solid #f1f5f9 !important;
+                        text-transform: capitalize !important;
+                        letter-spacing: 0 !important;
+                        font-weight: 500 !important;
+                        border-bottom: 1px solid transparent !important;
                         padding-top: 1rem !important;
                         padding-bottom: 1rem !important;
                     }
-                    html:not(.dark) .fi-ta-table td {
-                        border-bottom: 1px solid #f1f5f9 !important;
+                    html:not(.dark) .fi-ta-table th {
+                        color: #64748b !important;
+                        background: #ffffff !important;
+                        border-bottom: 1px solid #f8fafc !important;
+                    }
+                    .dark .fi-ta-table th {
+                        color: #94a3b8 !important;
+                        background: transparent !important;
+                        border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+                    }
+                    
+                    .fi-ta-table td {
+                        border-bottom: none !important; /* No row lines */
                         border-left: none !important;
                         border-right: none !important;
                         font-size: 0.875rem !important;
+                    }
+                    html:not(.dark) .fi-ta-table td {
                         color: #334155 !important;
                     }
+                    
+                    /* Hover effect for rows instead of borders */
+                    .fi-ta-table tr {
+                        transition: background-color 0.2s;
+                        border-bottom: 1px solid transparent !important;
+                    }
+                    html:not(.dark) .fi-ta-table tr {
+                        border-bottom: 1px solid #f8fafc !important;
+                    }
+                    .dark .fi-ta-table tr {
+                        border-bottom: 1px solid rgba(255,255,255,0.02) !important;
+                    }
                     html:not(.dark) .fi-ta-table tr:hover td {
-                        background-color: #fafafa !important;
+                        background-color: #f8fafc !important;
+                    }
+                    .dark .fi-ta-table tr:hover td {
+                        background-color: rgba(255,255,255,0.02) !important;
                     }
                     
                     /* Reset dropdown menu colors inside topbar */
@@ -383,6 +441,56 @@ class AdminPanelProvider extends PanelProvider
                         font-size: 0.6875rem;
                         color: #d1d5db;
                         font-style: italic;
+                    }
+                    /* Custom Classes Table Colors for Dark/Light Mode */
+                    .theme-dev-bg { background-color: #ecfdf5; }
+                    .dark .theme-dev-bg { background-color: rgba(6, 78, 59, 0.3); }
+                    .theme-dev-text { color: #047857; }
+                    .dark .theme-dev-text { color: #34d399; }
+                    .theme-dev-badge { background-color: #d1fae5; }
+                    .dark .theme-dev-badge { background-color: rgba(6, 78, 59, 0.5); }
+                    
+                    .theme-man-bg { background-color: #eff6ff; }
+                    .dark .theme-man-bg { background-color: rgba(30, 58, 138, 0.3); }
+                    .theme-man-text { color: #1d4ed8; }
+                    .dark .theme-man-text { color: #60a5fa; }
+                    .theme-man-badge { background-color: #dbeafe; }
+                    .dark .theme-man-badge { background-color: rgba(30, 58, 138, 0.5); }
+
+                    .theme-gen-bg { background-color: #faf5ff; }
+                    .dark .theme-gen-bg { background-color: rgba(88, 28, 135, 0.3); }
+                    .theme-gen-text { color: #7e22ce; }
+                    .dark .theme-gen-text { color: #c084fc; }
+                    .theme-gen-badge { background-color: #f3e8ff; }
+                    .dark .theme-gen-badge { background-color: rgba(88, 28, 135, 0.5); }
+
+                    /* Custom Actions inside table */
+                    .action-edit-btn {
+                        background-color: #ecfdf5 !important;
+                        color: #059669 !important;
+                        border: 1px solid #d1fae5;
+                        border-radius: 0.5rem;
+                        padding: 0.5rem;
+                        transition: all 0.2s;
+                    }
+                    .dark .action-edit-btn {
+                        background-color: rgba(6, 78, 59, 0.4) !important;
+                        color: #34d399 !important;
+                        border-color: rgba(6, 78, 59, 0.6);
+                    }
+                    
+                    .action-delete-btn {
+                        background-color: #fef2f2 !important;
+                        color: #dc2626 !important;
+                        border: 1px solid #fee2e2;
+                        border-radius: 0.5rem;
+                        padding: 0.5rem;
+                        transition: all 0.2s;
+                    }
+                    .dark .action-delete-btn {
+                        background-color: rgba(127, 29, 29, 0.4) !important;
+                        color: #f87171 !important;
+                        border-color: rgba(127, 29, 29, 0.6);
                     }
                 </style>
             ',

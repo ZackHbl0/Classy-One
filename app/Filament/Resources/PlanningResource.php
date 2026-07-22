@@ -34,7 +34,7 @@ class PlanningResource extends Resource
                     ->options(function () {
                         return \App\Models\Classe::all()
                             ->mapWithKeys(fn($c) => [
-                                $c->id => collect([$c->nom_classe ?? $c->name ?? $c->libelle ?? null])
+                                $c->id => collect([$c->nomClasse ?? $c->name ?? $c->libelle ?? null])
                                     ->filter()->first() ?? 'Classe #' . $c->id
                             ]);
                     })
@@ -69,10 +69,14 @@ class PlanningResource extends Resource
                     ->label('Salle')
                     ->placeholder('Salle 101')
                     ->maxLength(255),
-                Forms\Components\TextInput::make('professeur_name')
-                    ->label('Intervenant')
-                    ->placeholder('Nom du prof')
-                    ->maxLength(255),
+                Forms\Components\Select::make('professeur_name')
+                    ->label('Prof')
+                    ->placeholder('Sélectionnez un prof')
+                    ->prefixIcon('heroicon-o-user')
+                    ->options(function () {
+                        return \App\Models\User::where('role', 'professeur')->pluck('name', 'name');
+                    })
+                    ->searchable(),
                 Forms\Components\Select::make('type')
                     ->label('Type')
                     ->options([
@@ -97,7 +101,7 @@ class PlanningResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('classe_id')
                     ->label('Classe')
-                    ->getStateUsing(fn($record) => optional($record->classe)->nom_classe
+                    ->getStateUsing(fn($record) => optional($record->classe)->nomClasse
                         ?? optional($record->classe)->name
                         ?? optional($record->classe)->libelle
                         ?? 'Classe #' . $record->classe_id)
@@ -130,7 +134,7 @@ class PlanningResource extends Resource
                     ->label('Classe')
                     ->options(fn() => \App\Models\Classe::all()
                         ->mapWithKeys(fn($c) => [
-                            $c->id => collect([$c->nom_classe ?? $c->name ?? $c->libelle ?? null])
+                            $c->id => collect([$c->nomClasse ?? $c->name ?? $c->libelle ?? null])
                                 ->filter()->first() ?? 'Classe #' . $c->id
                         ])),
                 Tables\Filters\SelectFilter::make('status')

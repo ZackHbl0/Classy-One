@@ -47,6 +47,10 @@ class StudentResource extends Resource
                         Forms\Components\TextInput::make('telephone')
                             ->tel()
                             ->maxLength(255),
+                        Forms\Components\TextInput::make('numero_tuteur')
+                            ->label('Numéro du tuteur (ولي الأمر)')
+                            ->tel()
+                            ->maxLength(255),
                         Forms\Components\TextInput::make('password')
                             ->label('Mot de passe (Mobile App)')
                             ->password()
@@ -90,6 +94,9 @@ class StudentResource extends Resource
                                         Infolists\Components\TextEntry::make('telephone')
                                             ->label('TÉLÉPHONE')
                                             ->placeholder('N/A'),
+                                        Infolists\Components\TextEntry::make('numero_tuteur')
+                                            ->label('NUMÉRO DU TUTEUR (ولي الأمر)')
+                                            ->placeholder('N/A'),
                                         Infolists\Components\TextEntry::make('classe.nomClasse')
                                             ->label('CLASSE')
                                             ->placeholder('Non assigné'),
@@ -117,7 +124,7 @@ class StudentResource extends Resource
                                                     ->badge()
                                                     ->color(fn(string $state): string => match ($state) {
                                                         'Payé' => 'success',
-                                                        'En attente' => 'warning',
+                                                        'Non Payé' => 'danger',
                                                         default => 'gray',
                                                     }),
                                             ]),
@@ -196,6 +203,9 @@ class StudentResource extends Resource
                                     ]),
                             ]),
                     ]),
+                Tables\Actions\EditAction::make()
+                    ->label('Modifier')
+                    ->icon('heroicon-o-pencil'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -215,7 +225,9 @@ class StudentResource extends Resource
     {
         return [
             'index' => Pages\ListStudents::route('/'),
+            'create' => Pages\CreateStudent::route('/create'),
             'view' => Pages\ViewStudent::route('/{record}'),
+            'edit' => Pages\EditStudent::route('/{record}/edit'),
         ];
     }
 }

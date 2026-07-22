@@ -190,13 +190,16 @@ class NotificationController extends Controller
                 ->withAndroidConfig([
                     'priority' => 'high',
                     'notification' => [
-                        'channel_id' => 'high_importance_channel',
+                        'channel_id' => 'classy_one_channel_v1',
                         'sound' => 'default',
                         'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
-                        'icon' => 'ic_launcher',
+                        'icon' => '@mipmap/ic_launcher',
                     ],
                 ])
                 ->withApnsConfig([
+                    'headers' => [
+                        'apns-priority' => '10',
+                    ],
                     'payload' => [
                         'aps' => [
                             'content-available' => 1,

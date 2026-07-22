@@ -37,12 +37,40 @@ class CreateAbsence extends CreateRecord
                 TextInput::make('seance')
                     ->label('Séance (ex: 8h-10h)')
                     ->required(),
-                TextInput::make('matiere')
-                    ->label('Matière')
-                    ->required(),
                 Select::make('prof_id')
                     ->label('Professeur')
                     ->options(User::whereIn('role', ['professeur', 'prof'])->pluck('name', 'id'))
+                    ->live()
+                    ->required(),
+                Select::make('matiere')
+                    ->label('Matière')
+                    ->options(function (Get $get) {
+                        $profId = $get('prof_id');
+                        if ($profId) {
+                            $prof = User::find($profId);
+                            $matieres = $prof?->matieres ?? [];
+                            if (is_string($matieres)) {
+                                $decoded = json_decode($matieres, true);
+                                $matieres = is_array($decoded) ? $decoded : [$matieres];
+                            }
+                            if (!empty($matieres) && is_array($matieres)) {
+                                return collect($matieres)->mapWithKeys(fn($m) => [$m => $m])->toArray();
+                            }
+                        }
+                        return collect(User::pluck('matieres'))
+                            ->filter()
+                            ->flatMap(function($m) {
+                                if (is_array($m)) return $m;
+                                $decoded = json_decode($m, true);
+                                return is_array($decoded) ? $decoded : [$m];
+                            })
+                            ->filter()
+                            ->unique()
+                            ->sort()
+                            ->mapWithKeys(fn($m) => [$m => $m])
+                            ->toArray();
+                    })
+                    ->searchable()
                     ->required(),
                 Select::make('classe_id')
                     ->label('Classe')

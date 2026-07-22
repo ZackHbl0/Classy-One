@@ -51,8 +51,23 @@ class AbsenceResource extends Resource
                     ->label('Classe')
                     ->required()
                     ->disabled(),
-                Forms\Components\TextInput::make('matiere')
+                Forms\Components\Select::make('matiere')
                     ->label('Matière')
+                    ->options(function () {
+                        return collect(\App\Models\User::pluck('matieres'))
+                            ->filter()
+                            ->flatMap(function($m) {
+                                if (is_array($m)) return $m;
+                                $decoded = json_decode($m, true);
+                                return is_array($decoded) ? $decoded : [$m];
+                            })
+                            ->filter()
+                            ->unique()
+                            ->sort()
+                            ->mapWithKeys(fn($m) => [$m => $m])
+                            ->toArray();
+                    })
+                    ->searchable()
                     ->required(),
                 Forms\Components\Select::make('prof_id')
                     ->relationship('prof', 'name')

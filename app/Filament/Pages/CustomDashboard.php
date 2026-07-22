@@ -50,9 +50,8 @@ class CustomDashboard extends \Filament\Pages\Dashboard
             \App\Filament\Widgets\DashboardStatsWidget::class,
             // Secrétaire-only slim stats (no revenue)
             \App\Filament\Widgets\SecretaireDashboardStatsWidget::class,
-            // Admin-only charts
-            \App\Filament\Widgets\NotificationsChartWidget::class,
-            \App\Filament\Widgets\EventsChartWidget::class,
+            // Notifications replacing the old events chart
+            \App\Filament\Widgets\RecentNotificationsWidget::class,
         ];
 
         // If professor: show professor-specific widgets only
@@ -66,7 +65,6 @@ class CustomDashboard extends \Filament\Pages\Dashboard
         // For all other roles (admin, secretaire, etc.): show default widgets + shared ones
         return array_merge($widgets, [
             // Visible to all roles
-            \App\Filament\Widgets\RecentNotificationsWidget::class,
             \App\Filament\Widgets\UpcomingEventsWidget::class,
         ]);
     }

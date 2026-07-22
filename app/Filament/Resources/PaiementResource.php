@@ -59,7 +59,6 @@ class PaiementResource extends Resource
                             ->options([
                                 'Payé' => 'Payé',
                                 'Non Payé' => 'Non Payé',
-                                'En attente' => 'En attente',
                             ])
                             ->required(),
                     ])->columns(2)
@@ -87,7 +86,6 @@ class PaiementResource extends Resource
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'Payé' => 'success',
-                        'En attente' => 'warning',
                         'Non Payé' => 'danger',
                         default => 'gray',
                     }),
@@ -97,7 +95,6 @@ class PaiementResource extends Resource
                     ->options([
                         'Payé' => 'Payé',
                         'Non Payé' => 'Non Payé',
-                        'En attente' => 'En attente',
                     ])
             ])
             ->actions([

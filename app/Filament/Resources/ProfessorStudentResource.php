@@ -67,7 +67,7 @@ class ProfessorStudentResource extends Resource
             // Get class IDs from courses taught by this professor
             $classIds = Course::where('professor_id', $user->id)
                 ->pluck('classe_id')
-                ->push($user->classe_id)
+                ->merge($user->classes->pluck('id'))
                 ->filter()
                 ->unique()
                 ->toArray();
@@ -173,7 +173,18 @@ class ProfessorStudentResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('classe')
                     ->label('Filtrer par Classe')
-                    ->relationship('registres.classe', 'nomClasse')
+                    ->relationship('registres.classe', 'nomClasse', function (Builder $query) {
+                        $user = auth()->user();
+                        if ($user && $user->role === 'professeur') {
+                            $classIds = Course::where('professor_id', $user->id)
+                                ->pluck('classe_id')
+                                ->merge($user->classes->pluck('id'))
+                                ->filter()
+                                ->unique()
+                                ->toArray();
+                            $query->whereIn('classe.id', $classIds);
+                        }
+                    })
                     ->searchable()
                     ->preload()
                     ->multiple(),
@@ -211,7 +222,7 @@ class ProfessorStudentResource extends Resource
         if ($user && $user->role === 'professeur') {
             $classIds = Course::where('professor_id', $user->id)
                 ->pluck('classe_id')
-                ->push($user->classe_id)
+                ->merge($user->classes->pluck('id'))
                 ->filter()
                 ->unique()
                 ->toArray();

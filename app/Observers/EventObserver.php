@@ -23,7 +23,9 @@ class EventObserver
             title: 'Nouvel Événement : ' . $event->titre,
             message: $event->description,
             category: 'Événement',
-            targetType: 'all'
+            targetType: 'all',
+            targetIds: null,
+            pieceJointe: $event->pieceJointe
         );
     }
 }

@@ -29,7 +29,7 @@ class ListPlannings extends ListRecords
     public function getClassesProperty()
     {
         return Classe::all()->mapWithKeys(function ($c) {
-            return [$c->id => collect([$c->nom_classe ?? $c->name ?? $c->libelle ?? null])->filter()->first() ?? 'Classe #' . $c->id];
+            return [$c->id => collect([$c->nomClasse ?? $c->name ?? $c->libelle ?? null])->filter()->first() ?? 'Classe #' . $c->id];
         });
     }
 

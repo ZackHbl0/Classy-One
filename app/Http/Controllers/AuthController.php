@@ -71,6 +71,14 @@ class AuthController extends Controller
         // Generate new Sanctum token
         $token = $student->createToken('auth_token')->plainTextToken;
 
+        // Fetch and append class name
+        $registre = \App\Models\Registre::with('classe')->where('idStudent', $student->idStudent)->first();
+        if ($registre && $registre->classe) {
+            $student->classe = $registre->classe->nomClasse;
+        } else {
+            $student->classe = '';
+        }
+
         return response()->json([
             'status' => 'success',
             'message' => 'Connexion réussie',

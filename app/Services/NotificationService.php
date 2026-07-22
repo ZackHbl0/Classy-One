@@ -29,7 +29,8 @@ class NotificationService
         string $message,
         string $category,
         string $targetType = 'all',
-        ?array $targetIds = null
+        ?array $targetIds = null,
+        ?string $pieceJointe = null
     ): void {
         $targetSummary = 'Tous les étudiants';
 
@@ -50,6 +51,7 @@ class NotificationService
             'target_type' => $targetType,
             'target_ids' => $targetIds,
             'target_summary' => $targetSummary,
+            'pieceJointe' => $pieceJointe,
             'idStudent' => ($targetType === 'students' && count($targetIds ?? []) === 1) ? $targetIds[0] : null,
         ]);
     }

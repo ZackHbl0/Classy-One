@@ -32,7 +32,7 @@ class Classe extends Model
 
     public function professors()
     {
-        return $this->hasMany(User::class, 'classe_id')->where('role', 'professeur');
+        return $this->belongsToMany(User::class, 'classe_user', 'classe_id', 'user_id')->where('role', 'professeur');
     }
 
     public function courses()

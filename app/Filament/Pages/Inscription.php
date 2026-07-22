@@ -66,39 +66,62 @@ class Inscription extends Page implements HasForms
             ->schema([
                 Section::make('Informations de l\'Étudiant')
                     ->description('Remplissez les informations personnelles de l\'étudiant.')
+                    ->icon('heroicon-o-user')
+                    ->extraAttributes(['class' => 'custom-section-student'])
                     ->schema([
                         TextInput::make('matricule')
                             ->label('Matricule')
+                            ->prefixIcon('heroicon-o-identification')
                             ->disabled()
                             ->dehydrated()
                             ->required()
                             ->unique('student', 'matricule', ignoreRecord: true),
                         TextInput::make('nom')
                             ->label('Nom')
+                            ->placeholder('Entrez le nom')
+                            ->prefixIcon('heroicon-o-user')
                             ->required()
                             ->maxLength(255),
                         TextInput::make('prenom')
                             ->label('Prénom')
+                            ->placeholder('Entrez le prénom')
+                            ->prefixIcon('heroicon-o-user')
                             ->required()
                             ->maxLength(255),
                         TextInput::make('telephone')
                             ->label('Numéro de Téléphone')
+                            ->placeholder('Entrez le numéro de téléphone')
+                            ->prefixIcon('heroicon-o-phone')
+                            ->tel()
+                            ->maxLength(30),
+                        TextInput::make('numero_tuteur')
+                            ->label('Numéro du tuteur')
+                            ->placeholder('Entrez le numéro du tuteur')
+                            ->prefixIcon('heroicon-o-phone')
                             ->tel()
                             ->maxLength(30),
                         TextInput::make('password')
                             ->label('Mot de passe (Mobile App)')
+                            ->placeholder('Entrez le mot de passe')
+                            ->prefixIcon('heroicon-o-lock-closed')
                             ->password()
+                            ->revealable()
                             ->required()
                             ->dehydrated(fn($state) => filled($state))
-                            ->helperText('Ce mot de passe sera utilisé par l\'étudiant sur l\'application mobile.'),
+                            ->helperText('Ce mot de passe sera utilisé par l\'étudiant sur l\'application mobile.')
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
 
                 Section::make('Affectation à une Classe')
                     ->description('Sélectionnez la classe dans laquelle l\'étudiant sera inscrit.')
+                    ->icon('heroicon-o-academic-cap')
+                    ->extraAttributes(['class' => 'custom-section-class'])
                     ->schema([
                         Select::make('classe_id')
                             ->label('Classe')
+                            ->placeholder('Sélectionnez une classe')
+                            ->prefixIcon('heroicon-o-users')
                             ->options(function () {
                                 return Classe::all()->pluck('nomClasse', 'id')
                                     ->map(fn($label) => (string) ($label ?? 'Classe sans nom'));
@@ -110,13 +133,26 @@ class Inscription extends Page implements HasForms
             ->statePath('data');
     }
 
+    public function getHeading(): string|\Illuminate\Contracts\Support\Htmlable
+    {
+        return new \Illuminate\Support\HtmlString('
+            <div class="mb-2">
+                <h1 class="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">Nouvelle Inscription</h1>
+                <div class="h-1 w-20 bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full mt-3"></div>
+            </div>
+        ');
+    }
+
     protected function getFormActions(): array
     {
         return [
             Action::make('register')
                 ->label('Confirmer l\'inscription')
                 ->submit('register')
-                ->color('primary'),
+                ->icon('heroicon-o-user-plus')
+                ->extraAttributes([
+                    'class' => 'custom-submit-btn'
+                ]),
         ];
     }
 
@@ -132,6 +168,7 @@ class Inscription extends Page implements HasForms
                 'nom' => $data['nom'],
                 'prenom' => $data['prenom'],
                 'telephone' => $data['telephone'],
+                'numero_tuteur' => $data['numero_tuteur'] ?? null,
                 'password' => Hash::make($data['password']),
             ]);
 

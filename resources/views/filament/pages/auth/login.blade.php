@@ -72,7 +72,7 @@
             </div>
 
             <div class="footer-link" style="margin-top: 2.5rem;">
-                Pas encore de compte ? <a href="#">Contacter l'administration</a>
+                Accès sécurisé réservé au personnel et aux étudiants.
             </div>
 
         </div>
