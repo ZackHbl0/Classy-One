@@ -30,6 +30,7 @@ class ListGrades extends Page implements HasTable
                     $classIds = Course::where('professor_id', $user->id)
                         ->pluck('classe_id')
                         ->push($user->classe_id)
+                        ->merge($user->classes?->pluck('id') ?? collect())
                         ->filter()
                         ->unique()
                         ->toArray();

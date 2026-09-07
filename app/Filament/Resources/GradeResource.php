@@ -52,9 +52,11 @@ class GradeResource extends Resource
     public static function canEdit($record): bool
     {
         $user = auth()->user();
+        if (!$user) return false;
+        if (in_array($user->role, ['admin', 'secretaire'])) return true;
 
         // Professors can only edit grades they assigned
-        return in_array($user?->role, ['professeur', 'prof']) && (int) $record->teacher_id === (int) $user->id;
+        return in_array($user->role, ['professeur', 'prof']) && (int) $record->teacher_id === (int) $user->id;
     }
 
     public static function canDelete($record): bool
@@ -67,16 +69,13 @@ class GradeResource extends Resource
         $query = parent::getEloquentQuery();
         $user = auth()->user();
 
-        // Professors only see grades for their courses (supporting 'professeur' and 'prof')
+        // Professors see grades for their courses OR grades they personally entered (teacher_id)
         if ($user && in_array($user->role, ['professeur', 'prof'])) {
             $courseIds = Course::where('professor_id', $user->id)->pluck('id')->toArray();
-            $query->whereIn('course_id', $courseIds);
-        }
-
-        if ($user && $user->role === 'admin') {
-            $query->selectRaw('student_table.idStudent as id, student_table.idStudent as student_id, MAX(grades.semester) as semester, MAX(grades.classe_id) as classe_id, MAX(grades.teacher_id) as teacher_id, MAX(grades.exam_date) as exam_date')
-                ->rightJoin('student as student_table', 'grades.student_id', '=', 'student_table.idStudent')
-                ->groupBy('student_table.idStudent');
+            $query->where(function ($q) use ($courseIds, $user) {
+                $q->whereIn('course_id', $courseIds)
+                  ->orWhere('teacher_id', $user->id);
+            });
         }
 
         return $query;
@@ -144,8 +143,27 @@ class GradeResource extends Resource
                             })
                             ->searchable()
                             ->required()
-                            ->reactive()
+                            ->live()
+                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                // Auto-fill coefficient from the selected course
+                                if ($state) {
+                                    $course = Course::find($state);
+                                    if ($course && $course->coefficient) {
+                                        $set('coefficient', (float) $course->coefficient);
+                                    }
+                                }
+                            })
                             ->preload(),
+
+                        Forms\Components\TextInput::make('coefficient')
+                            ->label('Coefficient')
+                            ->numeric()
+                            ->default(1)
+                            ->minValue(0.5)
+                            ->maxValue(10)
+                            ->step(0.5)
+                            ->required()
+                            ->helperText('Coefficient de la matière (auto-rempli depuis le cours)'),
 
                         Forms\Components\Hidden::make('teacher_id')
                             ->default(fn() => auth()->id())
@@ -390,75 +408,97 @@ class GradeResource extends Resource
                     ->icon('heroicon-o-document-text')
                     ->modal()
                     ->modalHeading(fn($record) => "Bulletins de {$record->student->nom} {$record->student->prenom}")
-                    ->modalWidth('4xl')
-                    ->infolist([
-                        Infolists\Components\Tabs::make('Bulletins')
-                            ->tabs([
-                                Infolists\Components\Tabs\Tab::make('Semestre 1 (S1)')
-                                    ->icon('heroicon-o-academic-cap')
+                    ->modalWidth('5xl')
+                    ->infolist(function ($record) {
+                        $svc = app(\App\Services\GradeCalculationService::class);
+                        $student = $record->student;
+                        $classeId = optional($student->registres->first())->Cla_id
+                            ?? optional($student->classe)->id
+                            ?? null;
+
+                        $buildSemesterSchema = function (string $semester) use ($svc, $student, $classeId) {
+                            $subjects    = $svc->getSubjectBreakdown($student->idStudent, $semester);
+                            $weightedAvg = $svc->calculateWeightedAverage($student->idStudent, $semester);
+                            $totalCoeff  = array_sum(array_column($subjects, 'coefficient'));
+                            $mention     = $svc->getMention($weightedAvg);
+                            $mentionColor = $svc->getMentionColor($weightedAvg);
+                            $rank        = $classeId ? $svc->calculateRankInClass($student->idStudent, $classeId, $semester) : null;
+
+                            return [
+                                Infolists\Components\RepeatableEntry::make("grades_{$semester}")
+                                    ->label('Matières')
+                                    ->getStateUsing(fn() => $subjects)
                                     ->schema([
-                                        Infolists\Components\RepeatableEntry::make('grades_s1')
-                                            ->label('')
-                                            ->getStateUsing(function ($record) {
-                                                return $record->student->grades()
-                                                    ->where('semester', 'S1')
-                                                    ->selectRaw('course_id, AVG(note) as average_note')
-                                                    ->groupBy('course_id')
-                                                    ->get()
-                                                    ->map(fn($g) => [
-                                                        'matiere' => $g->course?->title ?? 'Matière Inconnue',
-                                                        'moyenne' => number_format($g->average_note, 2) . ' / 20',
-                                                        'is_passing' => $g->average_note >= 10,
-                                                    ]);
-                                            })
+                                        Infolists\Components\Grid::make(4)
                                             ->schema([
-                                                Infolists\Components\Grid::make(2)
-                                                    ->schema([
-                                                        Infolists\Components\TextEntry::make('matiere')
-                                                            ->label('Matière')
-                                                            ->weight('bold'),
-                                                        Infolists\Components\TextEntry::make('moyenne')
-                                                            ->label('Moyenne Générale')
-                                                            ->badge()
-                                                            ->color(fn($record) => $record['is_passing'] ? 'success' : 'danger'),
-                                                    ]),
-                                            ])
-                                            ->placeholder('Aucune note enregistrée pour ce semestre.'),
-                                    ]),
-                                Infolists\Components\Tabs\Tab::make('Semestre 2 (S2)')
-                                    ->icon('heroicon-o-academic-cap')
+                                                Infolists\Components\TextEntry::make('subject_name')
+                                                    ->label('Matière')
+                                                    ->weight('bold'),
+                                                Infolists\Components\TextEntry::make('coefficient')
+                                                    ->label('Coeff.')
+                                                    ->badge()
+                                                    ->color('warning')
+                                                    ->alignCenter(),
+                                                Infolists\Components\TextEntry::make('subject_average')
+                                                    ->label('Moyenne')
+                                                    ->badge()
+                                                    ->suffix(' / 20')
+                                                    ->color(fn($record) => $record['is_passing'] ? 'success' : 'danger')
+                                                    ->alignCenter(),
+                                                Infolists\Components\TextEntry::make('is_passing')
+                                                    ->label('Statut')
+                                                    ->badge()
+                                                    ->getStateUsing(fn($record) => $record['is_passing'] ? 'Admis' : 'Non admis')
+                                                    ->color(fn($record) => $record['is_passing'] ? 'success' : 'danger')
+                                                    ->alignCenter(),
+                                            ]),
+                                    ])
+                                    ->placeholder('Aucune note enregistrée pour ce semestre.'),
+
+                                Infolists\Components\Grid::make(4)
                                     ->schema([
-                                        Infolists\Components\RepeatableEntry::make('grades_s2')
-                                            ->label('')
-                                            ->getStateUsing(function ($record) {
-                                                return $record->student->grades()
-                                                    ->where('semester', 'S2')
-                                                    ->selectRaw('course_id, AVG(note) as average_note')
-                                                    ->groupBy('course_id')
-                                                    ->get()
-                                                    ->map(fn($g) => [
-                                                        'matiere' => $g->course?->title ?? 'Matière Inconnue',
-                                                        'moyenne' => number_format($g->average_note, 2) . ' / 20',
-                                                        'is_passing' => $g->average_note >= 10,
-                                                    ]);
-                                            })
-                                            ->schema([
-                                                Infolists\Components\Grid::make(2)
-                                                    ->schema([
-                                                        Infolists\Components\TextEntry::make('matiere')
-                                                            ->label('Matière')
-                                                            ->weight('bold'),
-                                                        Infolists\Components\TextEntry::make('moyenne')
-                                                            ->label('Moyenne Générale')
-                                                            ->badge()
-                                                            ->color(fn($record) => $record['is_passing'] ? 'success' : 'danger'),
-                                                    ]),
-                                            ])
-                                            ->placeholder('Aucune note enregistrée pour ce semestre.'),
+                                        Infolists\Components\TextEntry::make("weighted_avg_{$semester}")
+                                            ->label('Moyenne Générale Pondérée')
+                                            ->getStateUsing(fn() => number_format($weightedAvg, 2) . ' / 20')
+                                            ->badge()
+                                            ->size('lg')
+                                            ->color($mentionColor)
+                                            ->weight('bold'),
+
+                                        Infolists\Components\TextEntry::make("total_coeff_{$semester}")
+                                            ->label('Total Coefficients')
+                                            ->getStateUsing(fn() => $totalCoeff)
+                                            ->badge()
+                                            ->color('warning'),
+
+                                        Infolists\Components\TextEntry::make("mention_{$semester}")
+                                            ->label('Mention')
+                                            ->getStateUsing(fn() => $mention)
+                                            ->badge()
+                                            ->color($mentionColor),
+
+                                        Infolists\Components\TextEntry::make("rank_{$semester}")
+                                            ->label('Rang')
+                                            ->getStateUsing(fn() => $rank ? "#{$rank}" : 'N/A')
+                                            ->badge()
+                                            ->color('info'),
                                     ]),
-                            ])
-                            ->columnSpanFull(),
-                    ])
+                            ];
+                        };
+
+                        return [
+                            Infolists\Components\Tabs::make('Bulletins')
+                                ->tabs([
+                                    Infolists\Components\Tabs\Tab::make('Semestre 1 (S1)')
+                                        ->icon('heroicon-o-academic-cap')
+                                        ->schema($buildSemesterSchema('S1')),
+                                    Infolists\Components\Tabs\Tab::make('Semestre 2 (S2)')
+                                        ->icon('heroicon-o-academic-cap')
+                                        ->schema($buildSemesterSchema('S2')),
+                                ])
+                                ->columnSpanFull(),
+                        ];
+                    })
                     ->visible(fn() => auth()->user()?->role === 'admin'),
                 Tables\Actions\ViewAction::make()
                     ->modalHeading('Détails de la Note')
@@ -494,9 +534,14 @@ class GradeResource extends Resource
     {
         $user = auth()->user();
 
-        if ($user && $user->role === 'professeur') {
+        if ($user && in_array($user->role, ['professeur', 'prof'])) {
             $courseIds = Course::where('professor_id', $user->id)->pluck('id')->toArray();
-            $count = Grade::whereIn('course_id', $courseIds)->count();
+            $count = Grade::where(function ($q) use ($courseIds, $user) {
+                $q->where('teacher_id', $user->id);
+                if (!empty($courseIds)) {
+                    $q->orWhereIn('course_id', $courseIds);
+                }
+            })->count();
             return $count > 0 ? (string) $count : null;
         }
 

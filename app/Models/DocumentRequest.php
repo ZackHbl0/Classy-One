@@ -11,6 +11,7 @@ class DocumentRequest extends Model
 
     protected $fillable = [
         'idStudent',
+        'parent_id',
         'document_type',
         'reason',
         'urgency',
@@ -24,5 +25,10 @@ class DocumentRequest extends Model
     public function student()
     {
         return $this->belongsTo(Student::class, 'idStudent', 'idStudent');
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(SchoolParent::class, 'parent_id');
     }
 }

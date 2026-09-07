@@ -204,28 +204,36 @@ class AdminPanelProvider extends PanelProvider
                     /* Optional subtle background pattern on sidebar */
                     html:not(.dark) .fi-sidebar {
                         background-image: radial-gradient(circle at 50% 100%, #f0fdf4 0%, transparent 50%) !important;
-                        background-repeat: no-repeat;
-                        background-position: bottom center;
-                    }
-
-                    /* --- MODERN & CLEAN DASHBOARD OVERRIDES --- */
+                              /* --- MODERN & CLEAN DASHBOARD OVERRIDES --- */
                     
                     /* Global Widgets & Tables (Remove borders, add soft shadows) */
-                    .fi-wi, .fi-ta {
+                    .fi-wi-widget, .fi-ta {
                         border: none !important;
                         border-radius: 1.25rem !important;
                     }
-                    html:not(.dark) .fi-wi, html:not(.dark) .fi-ta {
+                    html:not(.dark) .fi-wi-widget, html:not(.dark) .fi-ta {
                         background-color: #ffffff !important;
                         box-shadow: 0 10px 40px -10px rgba(0,0,0,0.04) !important;
                     }
-                    .dark .fi-wi, .dark .fi-ta {
+                    .dark .fi-wi-widget, .dark .fi-ta {
                         background-color: rgba(255, 255, 255, 0.02) !important;
                         box-shadow: none !important;
                         border: 1px solid rgba(255,255,255,0.05) !important;
                     }
-
+ 
                     /* Stat/Overview Cards */
+                    html:not(.dark) .fi-wi-widget.fi-wi-stats-overview {
+                        background: transparent !important;
+                        background-color: transparent !important;
+                        box-shadow: none !important;
+                        border: none !important;
+                    }
+                    .dark .fi-wi-widget.fi-wi-stats-overview {
+                        background: transparent !important;
+                        background-color: transparent !important;
+                        box-shadow: none !important;
+                        border: none !important;
+                    }
                     .fi-wi-stats-overview-stat {
                         border: none !important;
                         border-radius: 1rem !important;

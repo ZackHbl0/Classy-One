@@ -19,9 +19,11 @@ Route::get('/test-push/{matricule}', [\App\Http\Controllers\NotificationControll
 // Professor public routes
 Route::post('/professor/login', [\App\Http\Controllers\Api\ProfessorController::class, 'login']);
 
-
+// Parent public routes
+Route::post('/parent/login', [\App\Http\Controllers\Api\ParentAuthController::class, 'login']);
 
 // Protected routes (require Sanctum token)
+
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
@@ -64,6 +66,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/grades/by-course', [\App\Http\Controllers\GradeController::class, 'byCourse']);
     Route::post('/grades/by-type', [\App\Http\Controllers\GradeController::class, 'byType']);
 
+    // Bulletin PDF (GET /api/bulletin/{studentId}?semester=S1)
+    Route::get('/bulletin/{studentId}', [\App\Http\Controllers\BulletinController::class, 'download']);
+
     // Profile
     Route::post('/profile/update-password', [\App\Http\Controllers\ProfileController::class, 'updatePassword']);
     Route::post('/profile/update-phone', [\App\Http\Controllers\ProfileController::class, 'updatePhone']);
@@ -85,4 +90,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/grades', [\App\Http\Controllers\Api\ProfessorController::class, 'enterGrade']);
         Route::post('/absences', [\App\Http\Controllers\Api\ProfessorController::class, 'markAbsence']);
     });
+
+    // ─── Parent routes ─────────────────────────────────────────────
+    Route::prefix('parent')->group(function () {
+        Route::post('/logout', [\App\Http\Controllers\Api\ParentAuthController::class, 'logout']);
+        Route::post('/update-fcm-token', [\App\Http\Controllers\Api\ParentAuthController::class, 'updateFcmToken']);
+        Route::match(['get', 'post'], '/dashboard', [\App\Http\Controllers\Api\ParentDashboardController::class, 'index']);
+        Route::get('/children/{id}', [\App\Http\Controllers\Api\ParentDashboardController::class, 'childDetails']);
+        Route::get('/documents', [\App\Http\Controllers\Api\ParentDocumentController::class, 'index']);
+        Route::post('/documents', [\App\Http\Controllers\Api\ParentDocumentController::class, 'store']);
+        // Bulletin PDF: GET /api/parent/bulletin/{studentId}?semester=S1
+        Route::get('/bulletin/{studentId}', [\App\Http\Controllers\BulletinController::class, 'download']);
+    });
 });
+

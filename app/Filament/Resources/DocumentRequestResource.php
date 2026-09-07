@@ -41,6 +41,11 @@ class DocumentRequestResource extends Resource
                             ->searchable()
                             ->disabled()
                             ->required(),
+                        Forms\Components\TextInput::make('demandeur_info')
+                            ->label('Demandé par')
+                            ->formatStateUsing(fn(?DocumentRequest $record) => $record && $record->parent ? "Parent : {$record->parent->name} (Tél: {$record->parent->phone})" : "Étudiant directement")
+                            ->disabled()
+                            ->visible(fn(?DocumentRequest $record) => $record !== null),
                         Forms\Components\Select::make('document_type')
                             ->label('Type de document')
                             ->options([
@@ -103,8 +108,14 @@ class DocumentRequestResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('student.nom')
                     ->label('Étudiant')
-                    ->formatStateUsing(fn($record) => $record->student->nom . ' ' . $record->student->prenom)
+                    ->formatStateUsing(fn($record) => $record->student ? ($record->student->nom . ' ' . $record->student->prenom) : 'N/A')
                     ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('applicant')
+                    ->label('Demandeur')
+                    ->getStateUsing(fn(DocumentRequest $record) => $record->parent ? "Parent : {$record->parent->name}" : 'Étudiant')
+                    ->badge()
+                    ->color(fn(DocumentRequest $record) => $record->parent ? 'warning' : 'info')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('document_type')
                     ->label('Type')
@@ -151,6 +162,21 @@ class DocumentRequestResource extends Resource
                         'normal' => 'Normale',
                         'urgent' => 'Urgente',
                     ]),
+                Tables\Filters\SelectFilter::make('demandeur')
+                    ->label('Demandé par')
+                    ->options([
+                        'parent' => 'Parents uniquement',
+                        'student' => 'Étudiants directement',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (($data['value'] ?? null) === 'parent') {
+                            return $query->whereNotNull('parent_id');
+                        }
+                        if (($data['value'] ?? null) === 'student') {
+                            return $query->whereNull('parent_id');
+                        }
+                        return $query;
+                    }),
             ])
             ->actions([
                 Tables\Actions\Action::make('generatePdf')

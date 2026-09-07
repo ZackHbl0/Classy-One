@@ -58,6 +58,13 @@
                             class="px-3 py-1 rounded-lg text-xs font-bold border border-primary-200 bg-primary-50 text-primary-700 shadow-sm">
                             {{ $grade->semester }}
                         </span>
+                        @if ($grade->coefficient && (float) $grade->coefficient > 0)
+                        <span
+                            class="px-3 py-1 rounded-lg text-xs font-bold border border-warning-200 bg-warning-50 text-warning-700 flex items-center gap-1 shadow-sm"
+                            title="Coefficient">
+                            <x-heroicon-o-variable class="w-3.5 h-3.5" /> Coeff. {{ number_format((float)$grade->coefficient, 1) }}
+                        </span>
+                        @endif
                     </div>
 
                     <div
@@ -66,16 +73,27 @@
                             <x-heroicon-o-calendar class="w-5 h-5 text-gray-400" />
                             <span>{{ $grade->exam_date?->format('d/m/Y') }}</span>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <button wire:click="mountAction('editGrade', { grade_id: {{ $grade->id }} })"
-                                class="h-10 w-10 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center hover:bg-primary-100 hover:text-primary-700 transition shadow-sm">
-                                <x-heroicon-s-pencil class="w-5 h-5" />
-                            </button>
-                            <button wire:click="mountAction('deleteGrade', { grade_id: {{ $grade->id }} })"
-                                class="h-10 w-10 rounded-full bg-danger-50 text-danger-600 flex items-center justify-center hover:bg-danger-100 hover:text-danger-700 transition shadow-sm">
-                                <x-heroicon-s-trash class="w-5 h-5" />
-                            </button>
-                        </div>
+                        @php
+                            $currentUser = auth()->user();
+                            $canManageThisGrade = $currentUser && (
+                                in_array($currentUser->role, ['admin', 'secretaire']) ||
+                                (int) $grade->teacher_id === (int) $currentUser->id
+                            );
+                        @endphp
+                        @if ($canManageThisGrade)
+                            <div class="flex items-center gap-3">
+                                <button wire:click="mountAction('editGrade', { grade_id: {{ $grade->id }} })"
+                                    class="h-10 w-10 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center hover:bg-primary-100 hover:text-primary-700 transition shadow-sm"
+                                    title="Modifier la note">
+                                    <x-heroicon-s-pencil class="w-5 h-5" />
+                                </button>
+                                <button wire:click="mountAction('deleteGrade', { grade_id: {{ $grade->id }} })"
+                                    class="h-10 w-10 rounded-full bg-danger-50 text-danger-600 flex items-center justify-center hover:bg-danger-100 hover:text-danger-700 transition shadow-sm"
+                                    title="Supprimer la note">
+                                    <x-heroicon-s-trash class="w-5 h-5" />
+                                </button>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -86,8 +104,7 @@
                 class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-16 text-gray-500 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 flex flex-col items-center justify-center">
                 <x-heroicon-o-document-magnifying-glass class="w-16 h-16 text-gray-300 mb-4" />
                 <p class="font-bold text-xl text-gray-600">Aucune note assignée</p>
-                <p class="text-base mt-2">Cet étudiant n'a pas encore reçu de notes. Utilisez le bouton "Ajouter une
-                    Note" pour commencer.</p>
+                <p class="text-base mt-2">Vous n'avez pas encore attribué de notes à cet étudiant dans votre matière. Utilisez le bouton "Ajouter une Note" pour commencer.</p>
             </div>
         @endif
     </div>

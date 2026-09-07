@@ -60,16 +60,28 @@ class FcmService
             $query->where('payment_notifications', true);
         }
 
-        // 3. Fetch Tokens
-        $tokens = $query->pluck('fcmToken')->toArray();
-        $tokens = array_unique(array_filter($tokens));
+        // 3. Fetch Student & Parent Tokens
+        $studentTokens = $query->pluck('fcmToken')->toArray();
+
+        // Also include linked parents' FCM tokens
+        $parentTokens = [];
+        if ($notification->target_type === 'all') {
+            $parentTokens = \App\Models\SchoolParent::whereNotNull('fcm_token')->pluck('fcm_token')->toArray();
+        } else {
+            $targetStudents = (clone $query)->with('parents')->get();
+            $parentTokens = $targetStudents->flatMap(function ($s) {
+                return $s->parents->pluck('fcm_token');
+            })->filter()->toArray();
+        }
+
+        $tokens = array_unique(array_filter(array_merge($studentTokens, $parentTokens)));
 
         if (empty($tokens)) {
             Log::info("FCM: No active tokens found for targets. Broadcast aborted.");
             return;
         }
 
-        Log::info("FCM: Targeting " . count($tokens) . " unique device(s).");
+        Log::info("FCM: Targeting " . count($tokens) . " unique device(s) (Students + Parents).");
         foreach ($tokens as $index => $token) {
             Log::info("FCM Token #" . ($index + 1) . ": " . substr($token, 0, 15) . "...");
         }
@@ -121,6 +133,53 @@ class FcmService
             }
         } catch (\Exception $e) {
             Log::error("FCM Critical Error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send direct push notification to specific device tokens (e.g. for absences, grades).
+     */
+    public static function sendDirectPush(array $tokens, string $title, string $body, array $data = []): void
+    {
+        $tokens = array_unique(array_filter($tokens));
+        if (empty($tokens)) {
+            return;
+        }
+
+        try {
+            $messaging = app('firebase.messaging');
+
+            $message = CloudMessage::new()
+                ->withNotification(FirebaseNotification::create($title, $body))
+                ->withData(array_merge([
+                    'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                ], $data))
+                ->withAndroidConfig([
+                    'priority' => 'high',
+                    'notification' => [
+                        'channel_id' => 'classy_one_channel_v1',
+                        'sound' => 'default',
+                        'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                        'icon' => '@mipmap/ic_launcher',
+                    ],
+                ])
+                ->withApnsConfig([
+                    'headers' => [
+                        'apns-priority' => '10',
+                    ],
+                    'payload' => [
+                        'aps' => [
+                            'content-available' => 1,
+                            'sound' => 'default',
+                            'badge' => 1,
+                        ],
+                    ],
+                ]);
+
+            $report = $messaging->sendMulticast($message, $tokens);
+            Log::info("FCM Direct Push '{$title}': Sent to " . count($tokens) . " device(s). Success: " . $report->successes()->count());
+        } catch (\Exception $e) {
+            Log::error("FCM Direct Push Error ('{$title}'): " . $e->getMessage());
         }
     }
 }

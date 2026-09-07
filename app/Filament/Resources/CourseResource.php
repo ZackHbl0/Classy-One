@@ -118,6 +118,7 @@ class CourseResource extends Resource
                         ->preserveFilenames()
                         ->columnSpanFull(),
 
+
                     Forms\Components\Select::make('classe_id')
                         ->label('Classe')
                         ->relationship('classe', 'nomClasse')
@@ -170,6 +171,7 @@ class CourseResource extends Resource
                     ->label('Classe')
                     ->badge()
                     ->color('info'),
+
 
                 Tables\Columns\TextColumn::make('professor.name')
                     ->label('Professeur')

@@ -205,8 +205,9 @@ class DashboardController extends Controller
         });
 
         $absencesCount = \App\Models\Absence::where('student_id', $student->idStudent)->count();
-        $moyenne = \App\Models\Grade::where('student_id', $student->idStudent)->avg('note');
-        $moyenneFormatted = $moyenne ? number_format($moyenne, 2, '.', '') . ' / 20' : 'N/A';
+        $hasGrades = \App\Models\Grade::where('student_id', $student->idStudent)->exists();
+        $moyenne = $hasGrades ? app(\App\Services\GradeCalculationService::class)->calculateWeightedAverage($student->idStudent) : null;
+        $moyenneFormatted = ($moyenne !== null) ? number_format($moyenne, 2, '.', '') . ' / 20' : 'N/A';
 
         return response()->json([
             "success" => true,

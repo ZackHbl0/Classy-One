@@ -26,14 +26,25 @@ class ViewStudentGrades extends Page
 
     public function getGradesProperty(): Collection
     {
-        $query = Grade::where('student_id', $this->record->idStudent);
-
         $user = auth()->user();
+
+        $query = Grade::where('student_id', $this->record->idStudent)
+            ->with(['course.classe', 'teacher'])
+            ->orderByDesc('exam_date');
+
+        // Professors only see grades they personally entered or for courses they teach
         if ($user && in_array($user->role, ['professeur', 'prof'])) {
-            $query->where('teacher_id', $user->id);
+            $courseIds = Course::where('professor_id', $user->id)->pluck('id')->toArray();
+
+            $query->where(function ($q) use ($courseIds, $user) {
+                $q->where('teacher_id', $user->id);
+                if (!empty($courseIds)) {
+                    $q->orWhereIn('course_id', $courseIds);
+                }
+            });
         }
 
-        return $query->with(['course.classe'])->orderByDesc('exam_date')->get();
+        return $query->get();
     }
 
     protected function getGradeForm(Form $form): Form
@@ -82,9 +93,32 @@ class ViewStudentGrades extends Page
                         ->default($defaultMatiere)
                         ->searchable()
                         ->required()
+                        ->live()
+                        ->afterStateUpdated(function ($state, Forms\Set $set) use ($user) {
+                            // Auto-fill coefficient from the matching course for this professor
+                            if ($state && $user) {
+                                $course = \App\Models\Course::where('professor_id', $user->id)
+                                    ->where('title', $state)
+                                    ->first();
+                                if ($course && $course->coefficient) {
+                                    $set('coefficient', (float) $course->coefficient);
+                                }
+                            }
+                        })
                         ->helperText(empty($matiereOptions)
                             ? "Vous n'avez aucune matière assignée dans votre profil."
                             : "Sélectionnez l'une des matières qui vous sont assignées."),
+
+                    // ─── Coefficient ───────────────────────────────────────────
+                    Forms\Components\TextInput::make('coefficient')
+                        ->label('Coefficient')
+                        ->numeric()
+                        ->default(1)
+                        ->minValue(0.5)
+                        ->maxValue(10)
+                        ->step(0.5)
+                        ->required()
+                        ->helperText('Coefficient automatique selon la matière (modifiable)'),
 
                     // ─── Enseignant (caché) ────────────────────────────────────
                     Forms\Components\Hidden::make('teacher_id')
@@ -144,9 +178,13 @@ class ViewStudentGrades extends Page
             ->icon('heroicon-o-plus')
             ->form(fn(Form $form) => $this->getGradeForm($form))
             ->mutateFormDataUsing(function (array $data): array {
-                // Ensure course_id is explicitly null since we now use subject_name
-                $data['course_id'] = null;
+                $matchingCourse = Course::where('professor_id', auth()->id())
+                    ->where('title', $data['subject_name'] ?? null)
+                    ->first();
+
+                $data['course_id'] = $matchingCourse?->id;
                 $data['student_id'] = $this->record->idStudent;
+                $data['teacher_id'] = auth()->id();
                 return $data;
             });
     }
@@ -155,12 +193,22 @@ class ViewStudentGrades extends Page
     {
         return Actions\EditAction::make('editGrade')
             ->record(function (array $arguments) {
-                return Grade::find($arguments['grade_id'] ?? null);
+                $grade = Grade::find($arguments['grade_id'] ?? null);
+                $user = auth()->user();
+                if ($user && in_array($user->role, ['professeur', 'prof']) && $grade && (int) $grade->teacher_id !== (int) $user->id) {
+                    abort(403, 'Vous ne pouvez modifier que les notes que vous avez attribuées.');
+                }
+                return $grade;
             })
             ->form(fn(Form $form) => $this->getGradeForm($form))
             ->mutateFormDataUsing(function (array $data): array {
-                $data['course_id'] = null; // Always clear it out
+                $matchingCourse = Course::where('professor_id', auth()->id())
+                    ->where('title', $data['subject_name'] ?? null)
+                    ->first();
+
+                $data['course_id'] = $matchingCourse?->id;
                 $data['student_id'] = $this->record->idStudent;
+                $data['teacher_id'] = auth()->id();
                 return $data;
             });
     }
@@ -169,7 +217,12 @@ class ViewStudentGrades extends Page
     {
         return Actions\DeleteAction::make('deleteGrade')
             ->record(function (array $arguments) {
-                return Grade::find($arguments['grade_id'] ?? null);
+                $grade = Grade::find($arguments['grade_id'] ?? null);
+                $user = auth()->user();
+                if ($user && in_array($user->role, ['professeur', 'prof']) && $grade && (int) $grade->teacher_id !== (int) $user->id) {
+                    abort(403, 'Vous ne pouvez supprimer que les notes que vous avez attribuées.');
+                }
+                return $grade;
             });
     }
 

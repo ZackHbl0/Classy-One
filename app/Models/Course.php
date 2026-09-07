@@ -16,6 +16,11 @@ class Course extends Model
         'file_path',
         'professor_id',
         'classe_id',
+        'coefficient',
+    ];
+
+    protected $casts = [
+        'coefficient' => 'decimal:2',
     ];
 
     /**

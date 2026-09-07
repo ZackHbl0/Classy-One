@@ -20,12 +20,25 @@ class Grade extends Model
         'exam_date',
         'comment',
         'semester',
+        'coefficient',
     ];
 
     protected $casts = [
-        'note' => 'decimal:2',
-        'exam_date' => 'date',
+        'note'        => 'decimal:2',
+        'coefficient' => 'decimal:2',
+        'exam_date'   => 'date',
     ];
+
+    protected static function booted(): void
+    {
+        static::saved(function ($grade) {
+            \Illuminate\Support\Facades\Cache::forget('grades_' . $grade->student_id);
+        });
+
+        static::deleted(function ($grade) {
+            \Illuminate\Support\Facades\Cache::forget('grades_' . $grade->student_id);
+        });
+    }
 
     /**
      * Available grade types
@@ -133,11 +146,12 @@ class Grade extends Model
      */
     public function getStatusAttribute()
     {
-        if ($this->note >= 16) return 'Excellent';
-        if ($this->note >= 14) return 'Très Bien';
-        if ($this->note >= 12) return 'Bien';
+        if ($this->note >= 18) return 'Excellent';
+        if ($this->note >= 16) return 'Très Bien';
+        if ($this->note >= 14) return 'Bien';
+        if ($this->note >= 12) return 'Assez Bien';
         if ($this->note >= 10) return 'Passable';
-        return 'Insuffisant';
+        return 'Ajourné';
     }
 
     /**
@@ -145,6 +159,7 @@ class Grade extends Model
      */
     public function getColorAttribute()
     {
+        if ($this->note >= 18) return 'success';
         if ($this->note >= 16) return 'success';
         if ($this->note >= 14) return 'info';
         if ($this->note >= 12) return 'primary';

@@ -15,9 +15,11 @@ Route::any('/admin-logout', [AdminLogoutController::class, 'logout'])
     ->middleware('web')
     ->name('admin.logout');
 
-Route::middleware('auth')->group(function () {
-    Route::get('/web-chat/students', [\App\Http\Controllers\API\MessageController::class, 'getChatStudents']);
-    Route::get('/web-chat/history/{userId}', [\App\Http\Controllers\API\MessageController::class, 'getChatHistory']);
-    Route::post('/web-chat/send', [\App\Http\Controllers\API\MessageController::class, 'sendMessage']);
-    Route::delete('/web-chat/messages/{id}', [\App\Http\Controllers\API\MessageController::class, 'deleteMessage']);
-});
+// Deprecated chat routes (tables dropped)
+// Route::middleware('auth')->group(function () {
+//     Route::get('/web-chat/students', [\App\Http\Controllers\Api\MessageController::class, 'getChatStudents']);
+//     Route::get('/web-chat/history/{userId}', [\App\Http\Controllers\Api\MessageController::class, 'getChatHistory']);
+//     Route::post('/web-chat/send', [\App\Http\Controllers\Api\MessageController::class, 'sendMessage']);
+//     Route::delete('/web-chat/messages/{id}', [\App\Http\Controllers\Api\MessageController::class, 'deleteMessage']);
+// });
+

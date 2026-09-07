@@ -107,4 +107,18 @@ class Student extends Authenticatable
     {
         return $this->morphToMany(Conversation::class, 'participant', 'conversation_participants', 'participant_id', 'conversation_id', 'idStudent', 'id')->withTimestamps();
     }
+
+    /**
+     * The parents associated with this student.
+     */
+    public function parents()
+    {
+        return $this->belongsToMany(
+            SchoolParent::class,
+            'parent_student',
+            'student_id',
+            'parent_id'
+        )->withTimestamps();
+    }
 }
+
