@@ -14,7 +14,17 @@ class FcmService
      */
     public static function sendNotification($notification)
     {
-        $messaging = app('firebase.messaging');
+        try {
+            try {
+                $messaging = app('firebase.messaging');
+            } catch (\Throwable $e) {
+                Log::warning("FCM: Firebase messaging unavailable: " . $e->getMessage());
+                return;
+            }
+        } catch (\Throwable $e) {
+            Log::warning("FCM: Firebase messaging is not configured or unavailable: " . $e->getMessage());
+            return;
+        }
         $tokens = [];
 
         Log::info("FCM: Starting broadcast for Notification ID: {$notification->id} | Type: {$notification->target_type}");
@@ -131,7 +141,7 @@ class FcmService
                     Log::error("FCM Failure Details: " . $failure->error()->getMessage());
                 }
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error("FCM Critical Error: " . $e->getMessage());
         }
     }
@@ -147,7 +157,12 @@ class FcmService
         }
 
         try {
-            $messaging = app('firebase.messaging');
+            try {
+                $messaging = app('firebase.messaging');
+            } catch (\Throwable $e) {
+                Log::warning("FCM: Firebase messaging unavailable: " . $e->getMessage());
+                return;
+            }
 
             $message = CloudMessage::new()
                 ->withNotification(FirebaseNotification::create($title, $body))
@@ -178,7 +193,7 @@ class FcmService
 
             $report = $messaging->sendMulticast($message, $tokens);
             Log::info("FCM Direct Push '{$title}': Sent to " . count($tokens) . " device(s). Success: " . $report->successes()->count());
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error("FCM Direct Push Error ('{$title}'): " . $e->getMessage());
         }
     }

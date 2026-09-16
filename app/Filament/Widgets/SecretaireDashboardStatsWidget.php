@@ -5,13 +5,11 @@ namespace App\Filament\Widgets;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use App\Models\Student;
-use App\Models\Event;
-use Illuminate\Support\Facades\DB;
+use App\Models\DocumentRequest;
+use App\Models\Absence;
+use App\Models\Paiement;
+use Carbon\Carbon;
 
-/**
- * Slim stats widget shown to Secrétaire users only.
- * Excludes all financial/revenue data.
- */
 class SecretaireDashboardStatsWidget extends BaseWidget
 {
     protected int | string | array $columnSpan = 'full';
@@ -25,34 +23,30 @@ class SecretaireDashboardStatsWidget extends BaseWidget
     protected function getStats(): array
     {
         $totalStudents = Student::count();
-        $totalNotifications = DB::table('notification')->count();
-        
-        $upcomingEvents = Event::where('date_evenement', '>=', now())->count();
-        $nextEvent = Event::where('date_evenement', '>=', now())
-            ->orderBy('date_evenement', 'asc')
-            ->first();
-        
-        $nextEventDate = $nextEvent 
-            ? \Carbon\Carbon::parse($nextEvent->date_evenement)->format('M d') 
-            : 'None';
+        $pendingDocs = DocumentRequest::where('status', 'pending')->count(); // Assuming 'pending' is a status
+        $todayAbsences = Absence::whereDate('date', Carbon::today())->count();
+        $paymentAlerts = Paiement::where('statut', '!=', 'Payé')->count(); // Using 'Payé' as seen in other files
 
         return [
             Stat::make('Total Students', number_format($totalStudents))
-                ->description('+12 this month')
-                ->descriptionIcon('heroicon-m-arrow-trending-up')
+                ->description('Active students in the school')
                 ->color('success')
                 ->icon('heroicon-o-users'),
 
-            Stat::make('Notifications Sent', number_format($totalNotifications))
-                ->description('+5% vs last week')
-                ->descriptionIcon('heroicon-m-arrow-trending-up')
-                ->color('info')
-                ->icon('heroicon-o-bell'),
+            Stat::make('Pending Document Requests', $pendingDocs)
+                ->description('Requires attention')
+                ->color($pendingDocs > 0 ? 'warning' : 'success')
+                ->icon('heroicon-o-document-text'),
 
-            Stat::make('Upcoming Events', $upcomingEvents)
-                ->description('Next: ' . $nextEventDate)
-                ->color('warning')
-                ->icon('heroicon-o-calendar'),
+            Stat::make("Today's Absences", $todayAbsences)
+                ->description('Students absent today')
+                ->color($todayAbsences > 0 ? 'danger' : 'success')
+                ->icon('heroicon-o-user-minus'),
+                
+            Stat::make('Payément Alerts', $paymentAlerts)
+                ->description('Overdue or unpaid payments')
+                ->color($paymentAlerts > 0 ? 'danger' : 'success')
+                ->icon('heroicon-o-exclamation-triangle'),
         ];
     }
 }

@@ -9,36 +9,27 @@ use App\Models\Grade;
 use App\Models\Absence;
 use App\Models\Planning;
 use App\Models\Course;
+use App\Http\Requests\ProfessorLoginRequest;
+use App\Http\Requests\EnterGradeRequest;
+use App\Http\Requests\MarkAbsenceRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 
 class ProfessorController extends Controller
 {
     /**
      * Handle Professor login.
      */
-    public function login(Request $request)
+    public function login(ProfessorLoginRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required|string',
-        ]);
+        $validated = $request->validated();
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid inputs.',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $professor = User::where('email', $request->email)
+        $professor = User::where('email', $validated['email'])
             ->whereIn('role', ['professeur', 'prof'])
             ->with('classes') // Eager load assigned classes
             ->first();
 
-        if (!$professor || !Hash::check($request->password, $professor->password)) {
+        if (!$professor || !Hash::check($validated['password'], $professor->password)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Email ou mot de passe incorrect'
@@ -48,14 +39,30 @@ class ProfessorController extends Controller
         // Revoke old tokens
         $professor->tokens()->delete();
 
-        // Generate new token
-        $token = $professor->createToken('prof_auth_token')->plainTextToken;
+        // Generate new token with role:professor scope
+        $token = $professor->createToken('prof_auth_token', ['role:professor'])->plainTextToken;
 
         return response()->json([
             'status' => 'success',
             'message' => 'Connexion réussie',
             'token' => $token,
             'professor' => $professor
+        ]);
+    }
+
+    /**
+     * Handle Professor logout.
+     */
+    public function logout(Request $request)
+    {
+        $user = $request->user();
+        if ($user && method_exists($user, 'currentAccessToken') && $user->currentAccessToken()) {
+            $user->currentAccessToken()->delete();
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Déconnexion réussie'
         ]);
     }
 
@@ -95,7 +102,6 @@ class ProfessorController extends Controller
         $classIds = $professor->classes->pluck('id')->toArray();
 
         // Fetch plannings linked to these classes
-        // Note: Planning table has classe_id
         $schedules = Planning::whereIn('classe_id', $classIds)
             ->with(['classe', 'matiere'])
             ->orderBy('jour')
@@ -111,40 +117,22 @@ class ProfessorController extends Controller
     /**
      * Enter a grade for a student.
      */
-    public function enterGrade(Request $request)
+    public function enterGrade(EnterGradeRequest $request)
     {
         $professor = $request->user();
-
-        $validator = Validator::make($request->all(), [
-            'student_id' => 'required|exists:student,idStudent',
-            'course_id' => 'required|exists:courses,id',
-            'classe_id' => 'required|exists:classe,id',
-            'note' => 'required|numeric|min:0|max:20',
-            'type' => 'required|string',
-            'subject_name' => 'required|string',
-            'exam_date' => 'required|date',
-            'comment' => 'nullable|string',
-            'semester' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'errors' => $validator->errors()
-            ], 422);
-        }
+        $validated = $request->validated();
 
         $grade = Grade::create([
-            'student_id' => $request->student_id,
+            'student_id' => $validated['student_id'],
             'teacher_id' => $professor->id,
-            'course_id' => $request->course_id,
-            'classe_id' => $request->classe_id,
-            'note' => $request->note,
-            'type' => $request->type,
-            'subject_name' => $request->subject_name,
-            'exam_date' => $request->exam_date,
-            'comment' => $request->comment,
-            'semester' => $request->semester,
+            'course_id' => $validated['course_id'],
+            'classe_id' => $validated['classe_id'],
+            'note' => $validated['note'],
+            'type' => $validated['type'],
+            'subject_name' => $validated['subject_name'],
+            'exam_date' => $validated['exam_date'],
+            'comment' => $validated['comment'] ?? null,
+            'semester' => $validated['semester'],
         ]);
 
         return response()->json([
@@ -157,32 +145,18 @@ class ProfessorController extends Controller
     /**
      * Mark an absence for a student.
      */
-    public function markAbsence(Request $request)
+    public function markAbsence(MarkAbsenceRequest $request)
     {
         $professor = $request->user();
-
-        $validator = Validator::make($request->all(), [
-            'student_id' => 'required|exists:student,idStudent',
-            'classe_id' => 'required|exists:classe,id',
-            'matiere' => 'required|string',
-            'date' => 'required|date',
-            'seance' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'errors' => $validator->errors()
-            ], 422);
-        }
+        $validated = $request->validated();
 
         $absence = Absence::create([
-            'student_id' => $request->student_id,
-            'classe_id' => $request->classe_id,
+            'student_id' => $validated['student_id'],
+            'classe_id' => $validated['classe_id'],
             'prof_id' => $professor->id,
-            'matiere' => $request->matiere,
-            'date' => $request->date,
-            'seance' => $request->seance,
+            'matiere' => $validated['matiere'],
+            'date' => $validated['date'],
+            'seance' => $validated['seance'],
             'is_justified' => false,
             'status' => 'pending',
         ]);

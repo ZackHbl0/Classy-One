@@ -4,31 +4,20 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SchoolParent;
+use App\Http\Requests\ParentLoginRequest;
+use App\Http\Requests\UpdateFcmTokenRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 
 class ParentAuthController extends Controller
 {
     /**
      * Handle parent login.
      */
-    public function login(Request $request)
+    public function login(ParentLoginRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|string',
-            'password' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Veuillez vérifier vos identifiants.',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $loginInput = trim($request->email);
+        $validated = $request->validated();
+        $loginInput = trim($validated['email']);
 
         // Find parent by email or phone
         $parent = SchoolParent::where('email', $loginInput)
@@ -45,11 +34,11 @@ class ParentAuthController extends Controller
 
         // Verify password
         $passwordMatches = false;
-        if (Hash::check($request->password, $parent->password)) {
+        if (Hash::check($validated['password'], $parent->password)) {
             $passwordMatches = true;
-        } elseif ($parent->password === $request->password) {
+        } elseif ($parent->password === $validated['password']) {
             // Graceful upgrade if plain text
-            $parent->password = Hash::make($request->password);
+            $parent->password = Hash::make($validated['password']);
             $parent->save();
             $passwordMatches = true;
         }
@@ -65,12 +54,12 @@ class ParentAuthController extends Controller
         $parent->tokens()->delete();
 
         // Save new FCM token if provided
-        if ($request->filled('fcmToken')) {
-            $parent->update(['fcm_token' => $request->fcmToken]);
+        if (!empty($validated['fcmToken'])) {
+            $parent->update(['fcm_token' => $validated['fcmToken']]);
         }
 
-        // Create new Sanctum personal access token
-        $token = $parent->createToken('parent_auth_token')->plainTextToken;
+        // Create new Sanctum personal access token with role:parent scope
+        $token = $parent->createToken('parent_auth_token', ['role:parent'])->plainTextToken;
 
         // Map children for instant client reference
         $children = $parent->students->map(function ($student) {
@@ -103,22 +92,13 @@ class ParentAuthController extends Controller
     /**
      * Update parent FCM push notification token.
      */
-    public function updateFcmToken(Request $request)
+    public function updateFcmToken(UpdateFcmTokenRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'fcmToken' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Token FCM requis.',
-            ], 422);
-        }
-
+        $validated = $request->validated();
         $parent = $request->user();
+
         if ($parent) {
-            $parent->update(['fcm_token' => $request->fcmToken]);
+            $parent->update(['fcm_token' => $validated['fcmToken']]);
             return response()->json([
                 'status' => 'success',
                 'message' => 'Token FCM parent mis à jour.',

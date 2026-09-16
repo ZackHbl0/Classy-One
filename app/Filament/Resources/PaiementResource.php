@@ -23,6 +23,19 @@ class PaiementResource extends Resource
         return auth()->user()?->role !== 'professeur';
     }
 
+    /**
+     * Delete permissions for financial records: Only Admin
+     */
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()?->isAdmin() ?? false;
+    }
+
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
 
     public static function form(Form $form): Form

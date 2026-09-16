@@ -28,8 +28,8 @@ class DashboardStatsWidget extends BaseWidget
         $nextEvent = Event::where('date_evenement', '>=', now())->orderBy('date_evenement', 'asc')->first();
         $nextEventDate = $nextEvent ? \Carbon\Carbon::parse($nextEvent->date_evenement)->format('M d') : 'None';
 
-        $overduePayments = Paiement::where('statut', '!=', 'Payé')->count();
-        $totalRevenue = Paiement::where('statut', 'Payé')->sum('montant');
+        $overduePayéments = Paiement::where('statut', '!=', 'Payéé')->count();
+        $totalRevenue = Paiement::where('statut', 'Payéé')->sum('montant');
 
         return [
             Stat::make('Total Students', number_format($totalStudents))
@@ -54,8 +54,8 @@ class DashboardStatsWidget extends BaseWidget
                 ->color('warning')
                 ->icon('heroicon-o-calendar'),
 
-            Stat::make('Payment Alerts', $overduePayments)
-                ->description($overduePayments . ' overdue payments')
+            Stat::make('Payément Alerts', $overduePayéments)
+                ->description($overduePayéments . ' overdue payments')
                 ->color('danger')
                 ->icon('heroicon-o-credit-card'),
         ];

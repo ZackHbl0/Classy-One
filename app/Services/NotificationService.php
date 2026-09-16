@@ -5,17 +5,11 @@ namespace App\Services;
 use App\Models\Notification as NotificationModel;
 use App\Models\Student;
 use App\Models\Classe;
-use Kreait\Firebase\Contract\Messaging;
-use Kreait\Firebase\Messaging\CloudMessage;
-use Filament\Notifications\Notification as FilamentNotification;
 
 class NotificationService
 {
-    protected $messaging;
-
-    public function __construct(Messaging $messaging)
+    public function __construct()
     {
-        $this->messaging = $messaging;
     }
 
     /**
@@ -32,7 +26,7 @@ class NotificationService
         ?array $targetIds = null,
         ?string $pieceJointe = null
     ): void {
-        $targetSummary = 'Tous les étudiants';
+        $targetSummary = 'Tous les Étudiants';
 
         if ($targetType === 'students' && !empty($targetIds)) {
             $students = Student::whereIn('idStudent', $targetIds)->get();

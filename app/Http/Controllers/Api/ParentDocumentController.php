@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\DocumentRequest;
 use Illuminate\Http\Request;
+use App\Http\Requests\ParentDocumentRequest;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -103,7 +104,7 @@ class ParentDocumentController extends Controller
     /**
      * Submit a new document request on behalf of a child.
      */
-    public function store(Request $request)
+    public function store(ParentDocumentRequest $request)
     {
         try {
             $parent = $request->user();

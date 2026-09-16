@@ -42,8 +42,13 @@ class ListNotifications extends ListRecords
 
                     return $data;
                 })
-                ->after(function (NotificationModel $record, Messaging $messaging) {
-                    $this->sendPushNotification($record, $messaging);
+                ->after(function (NotificationModel $record) {
+                    try {
+                        $messaging = app('firebase.messaging');
+                        $this->sendPushNotification($record, $messaging);
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning("FCM: Push notification skipped: " . $e->getMessage());
+                    }
                 }),
         ];
     }

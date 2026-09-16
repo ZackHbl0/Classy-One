@@ -42,7 +42,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Register role middleware alias
         $middleware->alias([
-            'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+            'admin'          => \App\Http\Middleware\EnsureUserIsAdmin::class,
+            'role.professor' => \App\Http\Middleware\EnsureUserIsProfessor::class,
+            'role.parent'    => \App\Http\Middleware\EnsureUserIsParent::class,
+            'role.student'   => \App\Http\Middleware\EnsureUserIsStudent::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

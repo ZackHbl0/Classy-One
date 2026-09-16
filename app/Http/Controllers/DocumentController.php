@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\DocumentRequest;
-use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\CreateDocumentRequest;
 
 class DocumentController extends Controller
 {
@@ -42,26 +42,17 @@ class DocumentController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(CreateDocumentRequest $request)
     {
         $student = $request->user();
 
-        // Matches legacy create_document_request.php 
-        $validator = Validator::make($request->all(), [
-            'documentType' => 'required|string',
-            'reason' => 'required|string',
-            'urgency' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(["success" => false, "message" => "Données manquantes ou invalides."]);
-        }
+        $validated = $request->validated();
 
         DocumentRequest::create([
             'idStudent' => $student->idStudent,
-            'document_type' => $request->input('documentType'),
-            'reason' => $request->input('reason'),
-            'urgency' => $request->input('urgency'),
+            'document_type' => $validated['documentType'],
+            'reason' => $validated['reason'],
+            'urgency' => $validated['urgency'],
             'status' => 'pending',
             'request_date' => date('Y-m-d H:i:s')
         ]);

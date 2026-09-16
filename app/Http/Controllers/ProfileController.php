@@ -4,28 +4,23 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\UpdatePasswordRequest;
+use App\Http\Requests\UpdatePhoneRequest;
+use App\Http\Requests\UpdateFcmTokenRequest;
 
 class ProfileController extends Controller
 {
-    public function updatePassword(Request $request)
+    public function updatePassword(UpdatePasswordRequest $request)
     {
         $student = $request->user();
 
-        $validator = Validator::make($request->all(), [
-            'currentPassword' => 'required|string',
-            'newPassword' => 'required|string|min:6',
-        ]);
-
-        if ($validator->fails() || empty($request->currentPassword)) {
-            return response()->json(["success" => false, "message" => "Paramètres incomplets ou invalides."]);
-        }
+        $validated = $request->validated();
 
         // Verify old password (check bcrypt hash, fallback to plain-text check for unmigrated accounts)
         $passwordMatches = false;
-        if (Hash::check($request->currentPassword, $student->password)) {
+        if (Hash::check($validated['currentPassword'], $student->password)) {
             $passwordMatches = true;
-        } else if ($student->password === $request->currentPassword) {
+        } else if ($student->password === $validated['currentPassword']) {
             $passwordMatches = true;
         }
 
@@ -34,43 +29,31 @@ class ProfileController extends Controller
         }
 
         // Update with new bcrypt hash
-        $student->password = Hash::make($request->newPassword);
+        $student->password = Hash::make($validated['newPassword']);
         $student->save();
 
         return response()->json(["success" => true, "message" => "Mot de passe mis à jour avec succès."]);
     }
 
-    public function updatePhone(Request $request)
+    public function updatePhone(UpdatePhoneRequest $request)
     {
         $student = $request->user();
 
-        $validator = Validator::make($request->all(), [
-            'newPhone' => 'required|string|max:20',
-        ]);
+        $validated = $request->validated();
 
-        if ($validator->fails()) {
-            return response()->json(["success" => false, "message" => "Numéro de téléphone invalide."]);
-        }
-
-        $student->telephone = $request->newPhone;
+        $student->telephone = $validated['newPhone'];
         $student->save();
 
         return response()->json(["success" => true, "message" => "Téléphone mis à jour."]);
     }
 
-    public function updateFcmToken(Request $request)
+    public function updateFcmToken(UpdateFcmTokenRequest $request)
     {
         $student = $request->user();
 
-        $validator = Validator::make($request->all(), [
-            'fcmToken' => 'required|string',
-        ]);
+        $validated = $request->validated();
 
-        if ($validator->fails()) {
-            return response()->json(["success" => false, "message" => "Token manquant."]);
-        }
-
-        $student->fcmToken = $request->fcmToken;
+        $student->fcmToken = $validated['fcmToken'];
         $student->save();
 
         return response()->json(["success" => true, "message" => "Token FCM mis à jour."]);

@@ -13,8 +13,6 @@ use Filament\Notifications\Notification as FilamentNotification;
 use App\Models\Student;
 use App\Models\Classe;
 use App\Models\Notification as NotificationModel;
-use Kreait\Firebase\Contract\Messaging;
-use Kreait\Firebase\Messaging\CloudMessage;
 
 class NotificationFormWidget extends Widget implements HasForms
 {
@@ -66,7 +64,7 @@ class NotificationFormWidget extends Widget implements HasForms
                                 Components\Radio::make('target_type')
                                     ->label('Type de cible')
                                     ->options([
-                                        'all' => 'Tous les étudiants',
+                                        'all' => 'Tous les Étudiants',
                                         'classes' => 'Par Classe',
                                         'students' => 'Par Étudiant',
                                     ])
@@ -95,11 +93,10 @@ class NotificationFormWidget extends Widget implements HasForms
             ->statePath('data');
     }
 
-    public function sendNotification(Messaging $messaging): void
+    public function sendNotification(): void
     {
         $data = $this->form->getState();
-        $tokens = [];
-        $targetSummary = 'Tous les étudiants';
+        $targetSummary = 'Tous les Étudiants';
         $targetIds = null;
 
         if ($data['target_type'] === 'students') {
@@ -112,13 +109,6 @@ class NotificationFormWidget extends Widget implements HasForms
             $classes = \App\Models\Classe::whereIn('id', $data['target_classes'])->get();
             $targetIds = $data['target_classes'];
             $targetSummary = 'Classe(s): ' . $classes->pluck('nomClasse')->implode(', ');
-
-            // Get students in these classes
-            $students = Student::whereHas('registres', function ($query) use ($data) {
-                $query->whereIn('Cla_id', $data['target_classes']);
-            })->get();
-        } else {
-            $students = Student::all();
         }
 
         // Save to DB (this automatically triggers the push notification via Notification model booted hook)
@@ -137,7 +127,7 @@ class NotificationFormWidget extends Widget implements HasForms
                 ->body('Notification envoyée et enregistrée.')
                 ->success()
                 ->send();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             FilamentNotification::make()
                 ->title('Erreur')
                 ->body('Impossible d\'enregistrer la notification : ' . $e->getMessage())

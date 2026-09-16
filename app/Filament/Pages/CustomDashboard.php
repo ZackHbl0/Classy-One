@@ -48,6 +48,8 @@ class CustomDashboard extends \Filament\Pages\Dashboard
         $widgets = [
             // Admin-only full stats (revenue included)
             \App\Filament\Widgets\DashboardStatsWidget::class,
+            \App\Filament\Widgets\RevenueChartWidget::class,
+            \App\Filament\Widgets\AttendanceChartWidget::class,
             // Secrétaire-only slim stats (no revenue)
             \App\Filament\Widgets\SecretaireDashboardStatsWidget::class,
             // Notifications replacing the old events chart
