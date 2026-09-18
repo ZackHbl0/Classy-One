@@ -117,36 +117,12 @@ class ParentDocumentController extends Controller
             }
 
             $reason = $request->input('reason') ?: $request->input('comments');
-            if (empty($reason)) {
+            if (empty(trim((string)$reason))) {
                 $reason = 'Demande effectuée par le parent.';
             }
 
-            $rawUrgency = strtolower($request->input('urgency', 'normal'));
-            $urgency = (str_starts_with($rawUrgency, 'urg')) ? 'urgent' : 'normal';
-
-            $validator = Validator::make([
-                'student_id' => $request->student_id,
-                'document_type' => $request->document_type,
-                'reason' => $reason,
-                'urgency' => $urgency,
-            ], [
-                'student_id' => 'required|integer',
-                'document_type' => 'required|string|max:100',
-                'reason' => 'required|string|max:500',
-                'urgency' => 'required|in:normal,urgent',
-            ], [
-                'student_id.required' => 'Veuillez sélectionner un élève.',
-                'document_type.required' => 'Le type de document est requis.',
-                'reason.required' => 'Le motif de la demande est requis.',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $validator->errors()->first(),
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
+            $rawUrgency = strtolower((string) $request->input('urgency', 'normal'));
+            $urgency = str_starts_with($rawUrgency, 'urg') ? 'urgent' : 'normal';
 
             $studentId = (int) $request->student_id;
 
@@ -156,7 +132,7 @@ class ParentDocumentController extends Controller
             if (!$isChildOfParent) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Vous n\'êtes pas autorisé à faire une demande pour cet élève.',
+                    'message' => "Vous n'\u00eates pas autoris\u00e9 \u00e0 faire une demande pour cet \u00e9l\u00e8ve.",
                 ], 403);
             }
 

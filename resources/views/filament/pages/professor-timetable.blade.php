@@ -433,8 +433,8 @@
         }
     </style>
 
-    {{-- Admin Professor Selector (shown only to Admin) --}}
-    @if(auth()->user()->isAdmin())
+    {{-- Professor Selector (shown to Admin & Secrétaire) --}}
+    @if(auth()->user()->isAdmin() || auth()->user()->isSecretaire())
         <div class="planning-selector">
             <label for="selectedProfessor" class="planning-selector-label">
                 Sélectionner un enseignant
@@ -527,8 +527,8 @@
                         @forelse($courses as $course)
                             <div class="course-card">
 
-                                {{-- Action icons (e.g. edit for admin) --}}
-                                @if(auth()->user()->isAdmin())
+                                {{-- Action icons (e.g. edit for admin & secretaire) --}}
+                                @if(auth()->user()->isAdmin() || auth()->user()->isSecretaire())
                                     <div class="course-actions">
                                         <a href="{{ \App\Filament\Resources\PlanningResource::getUrl('edit', ['record' => $course->id]) }}"
                                             class="course-action-btn course-edit-btn" title="Modifier ce cours">
@@ -570,7 +570,7 @@
                                             </span>
                                         @endif
 
-                                        @if(auth()->user()->isAdmin())
+                                        @if(auth()->user()->isAdmin() || auth()->user()->isSecretaire())
                                             <span class="course-meta-item" style="color: #9ca3af;">
                                                 <x-heroicon-o-user />
                                                 {{ $course->professeur_name ?: 'Non assigné' }}

@@ -11,7 +11,7 @@ class ProfessorTimetable extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 
-    protected static ?string $navigationLabel = 'Emploi du temps';
+    protected static ?string $navigationLabel = 'Emploi du temps du prof';
 
     protected static ?string $title = '';
 
@@ -28,18 +28,18 @@ class ProfessorTimetable extends Page
     public static function shouldRegisterNavigation(): bool
     {
         $user = auth()->user();
-        return $user && in_array($user->role, ['professeur', 'admin']);
+        return $user && in_array($user->role, ['professeur', 'admin', 'secretaire']);
     }
 
     public function mount(): void
     {
         $user = auth()->user();
-        abort_unless($user && in_array($user->role, ['professeur', 'admin']), 403);
+        abort_unless($user && in_array($user->role, ['professeur', 'admin', 'secretaire']), 403);
 
         if ($user->isProfesseur()) {
             $this->selectedProfessor = $user->name;
         } else {
-            // Admin: default to first professor or current
+            // Admin & Secrétaire: default to first professor or current
             $firstProf = User::where('role', 'professeur')->first();
             $this->selectedProfessor = $firstProf?->name ?? $user->name;
         }

@@ -22,7 +22,7 @@ class UpdatePhoneRequest extends FormRequest
 
     public function messages(): array
     {
-        return {};
+        return [];
     }
 
     protected function failedValidation(Validator $validator)

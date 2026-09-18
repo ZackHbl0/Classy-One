@@ -44,7 +44,7 @@ class CustomDashboard extends \Filament\Pages\Dashboard
         // Check if user is a professor
         $isProfessor = auth()->user()?->role === 'professeur';
 
-        // Base widgets visible to all non-professor roles
+        // Base widgets visible to non-professor roles
         $widgets = [
             // Admin-only full stats (revenue included)
             \App\Filament\Widgets\DashboardStatsWidget::class,
@@ -52,8 +52,8 @@ class CustomDashboard extends \Filament\Pages\Dashboard
             \App\Filament\Widgets\AttendanceChartWidget::class,
             // Secrétaire-only slim stats (no revenue)
             \App\Filament\Widgets\SecretaireDashboardStatsWidget::class,
-            // Notifications replacing the old events chart
-            \App\Filament\Widgets\RecentNotificationsWidget::class,
+            // Journal d'activités (Admin only, sits below charts full-width)
+            \App\Filament\Widgets\ActivityLogTableWidget::class,
         ];
 
         // If professor: show professor-specific widgets only
@@ -64,10 +64,7 @@ class CustomDashboard extends \Filament\Pages\Dashboard
             ];
         }
 
-        // For all other roles (admin, secretaire, etc.): show default widgets + shared ones
-        return array_merge($widgets, [
-            // Visible to all roles
-            \App\Filament\Widgets\UpcomingEventsWidget::class,
-        ]);
+        // For all other roles (admin, secretaire, etc.): show default widgets
+        return $widgets;
     }
 }

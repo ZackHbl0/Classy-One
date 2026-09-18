@@ -5,7 +5,6 @@ namespace App\Filament\Widgets;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use App\Models\Student;
-use App\Models\Event;
 use App\Models\Paiement;
 use Illuminate\Support\Facades\DB;
 
@@ -23,13 +22,7 @@ class DashboardStatsWidget extends BaseWidget
     {
         $totalStudents = Student::count();
         $totalNotifications = DB::table('notification')->count();
-        
-        $upcomingEvents = Event::where('date_evenement', '>=', now())->count();
-        $nextEvent = Event::where('date_evenement', '>=', now())->orderBy('date_evenement', 'asc')->first();
-        $nextEventDate = $nextEvent ? \Carbon\Carbon::parse($nextEvent->date_evenement)->format('M d') : 'None';
-
-        $overduePayéments = Paiement::where('statut', '!=', 'Payéé')->count();
-        $totalRevenue = Paiement::where('statut', 'Payéé')->sum('montant');
+        $totalRevenue = Paiement::where('statut', 'Payé')->sum('montant');
 
         return [
             Stat::make('Total Students', number_format($totalStudents))
@@ -48,16 +41,6 @@ class DashboardStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-arrow-trending-up')
                 ->color('info')
                 ->icon('heroicon-o-bell'),
-
-            Stat::make('Upcoming Events', $upcomingEvents)
-                ->description('Next: ' . $nextEventDate)
-                ->color('warning')
-                ->icon('heroicon-o-calendar'),
-
-            Stat::make('Payément Alerts', $overduePayéments)
-                ->description($overduePayéments . ' overdue payments')
-                ->color('danger')
-                ->icon('heroicon-o-credit-card'),
         ];
     }
 }

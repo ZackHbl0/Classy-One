@@ -9,6 +9,11 @@ use App\Models\Notification;
 
 class RecentNotificationsWidget extends BaseWidget
 {
+    public static function canView(): bool
+    {
+        return false;
+    }
+
     public function getHeading(): string|\Illuminate\Contracts\Support\Htmlable
     {
         return new \Illuminate\Support\HtmlString('

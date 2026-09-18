@@ -28,17 +28,26 @@ class AuthController extends Controller
         // Check if the password is valid
         $passwordMatches = false;
 
-        // 1. Check if it's already a bcrypt hash
-        if (Hash::check($validated['password'], $student->password)) {
+        // 1. Check plain text match first (safe against non-bcrypt values in DB)
+        if ($student->password === $validated['password'] || ($student->password_plain && $student->password_plain === $validated['password'])) {
             $passwordMatches = true;
-        }
-        // 2. Fallback: Check if it's still plain text (graceful migration)
-        else if ($student->password === $validated['password']) {
-            $passwordMatches = true;
+            $student->password_plain = $validated['password'];
 
             // Automatically upgrade plain-text password to bcrypt for future logins
-            $student->password = Hash::make($validated['password']);
+            if (!empty($student->password) && !str_starts_with($student->password, '$2y$') && !str_starts_with($student->password, '$2a$')) {
+                $student->password = Hash::make($validated['password']);
+            }
             $student->save();
+        }
+        // 2. Fallback: Check bcrypt hash using native password_verify (never throws exception)
+        else if (!empty($student->password) && (str_starts_with($student->password, '$2y$') || str_starts_with($student->password, '$2a$'))) {
+            if (password_verify($validated['password'], $student->password)) {
+                $passwordMatches = true;
+                if (empty($student->password_plain)) {
+                    $student->password_plain = $validated['password'];
+                    $student->save();
+                }
+            }
         }
 
         if (!$passwordMatches) {
@@ -87,6 +96,7 @@ class AuthController extends Controller
             'nom' => $validated['nom'],
             'prenom' => $validated['prenom'],
             'password' => Hash::make($validated['password']),
+            'password_plain' => $validated['password'],
             'telephone' => $validated['telephone'] ?? null,
             'fcmToken' => $validated['fcmToken'] ?? null,
         ]);

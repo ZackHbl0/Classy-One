@@ -1,5 +1,29 @@
 <x-filament-panels::page>
-    <form wire:submit.prevent="register">
+    <form wire:submit.prevent="register" autocomplete="off" x-data x-init="
+        const clearAutofill = () => {
+            const inputs = $el.querySelectorAll('input');
+            inputs.forEach(input => {
+                if (input.type === 'password' || (input.id && input.id.includes('password')) || (input.name && input.name.includes('password'))) {
+                    if (input.value === '12345678') {
+                        input.value = '';
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
+                if ((input.id && input.id.includes('numero_tuteur')) || (input.name && input.name.includes('numero_tuteur')) || (input.placeholder && input.placeholder.includes('tuteur'))) {
+                    if (input.value.includes('@') || input.value === 'admin@osbt.com') {
+                        input.value = '';
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
+            });
+        };
+        setTimeout(clearAutofill, 50);
+        setTimeout(clearAutofill, 200);
+        setTimeout(clearAutofill, 600);
+    ">
+        <!-- Hidden traps to intercept aggressive browser credential autofill -->
+        <input type="text" name="chrome_prevent_autofill_user" style="position: absolute; opacity: 0; height: 0; width: 0; z-index: -1;" tabindex="-1" autocomplete="off" />
+        <input type="password" name="chrome_prevent_autofill_pwd" style="position: absolute; opacity: 0; height: 0; width: 0; z-index: -1;" tabindex="-1" autocomplete="new-password" />
         {{ $this->form }}
 
         <div class="mt-8 flex justify-end">

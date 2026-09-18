@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class AuditLog extends Model
@@ -63,7 +64,7 @@ class AuditLog extends Model
 
     /**
      * Synthesize initial historical logs from real database records (grades, absences, documents, etc.)
-     * so that the audit table is immediately populated with rich realistic staff tracking entries.
+     * so that the audit table is populated with authentic activity from the institution.
      */
     public static function seedFromExistingRecords(): void
     {
@@ -72,111 +73,103 @@ class AuditLog extends Model
         }
 
         $now = Carbon::now();
-
-        // 1. Logs from Grades entered by Teachers
-        $grades = Grade::with(['teacher', 'student'])->orderBy('id', 'desc')->limit(12)->get();
-        foreach ($grades as $index => $g) {
-            $teacher = $g->teacher;
-            $studentName = $g->student ? ($g->student->prenom . ' ' . $g->student->nom) : 'Élève #' . $g->student_id;
-            $createdAt = $g->created_at ?? $now->copy()->subHours(2 + $index);
-            
-            self::create([
-                'user_id' => $teacher?->id,
-                'user_name' => $teacher?->name ?? 'Professeur',
-                'user_role' => 'professeur',
-                'action' => 'Saisie Note',
-                'subject_type' => 'Note / Évaluation',
-                'subject_id' => (string) $g->id,
-                'description' => "Note saisie ({$g->valeur_note}/20) en {$g->matiere} pour {$studentName}",
-                'ip_address' => '192.168.1.' . (20 + ($index % 10)),
-                'details' => [
-                    'matiere' => $g->matiere,
-                    'coefficient' => $g->coefficient ?? 1,
-                    'valeur' => $g->valeur_note,
-                    'eleve' => $studentName,
-                ],
-                'created_at' => $createdAt,
-                'updated_at' => $createdAt,
-            ]);
-        }
-
-        // 2. Logs from Document Requests handled by Secretaries / Admin
-        $docRequests = DocumentRequest::orderBy('id', 'desc')->limit(8)->get();
-        $secretaire = User::where('role', 'secretaire')->first() ?? User::where('role', 'admin')->first();
-        foreach ($docRequests as $index => $dr) {
-            $actionLabel = ($dr->status === 'approved') ? 'Approbation Document' : (($dr->status === 'rejected') ? 'Rejet Document' : 'Traitement Demande');
-            $createdAt = $dr->request_date ? Carbon::parse($dr->request_date) : $now->copy()->subHours(4 + $index);
-            
-            self::create([
-                'user_id' => $secretaire?->id,
-                'user_name' => $secretaire?->name ?? 'Secrétariat',
-                'user_role' => $secretaire?->role ?? 'secretaire',
-                'action' => $actionLabel,
-                'subject_type' => 'Demande de Document',
-                'subject_id' => (string) $dr->id,
-                'description' => "Statut de la demande '{$dr->document_type}' passé à : " . ucfirst($dr->status ?? 'en attente'),
-                'ip_address' => '192.168.1.15',
-                'details' => [
-                    'type' => $dr->document_type,
-                    'statut' => $dr->status,
-                ],
-                'created_at' => $createdAt,
-                'updated_at' => $createdAt,
-            ]);
-        }
-
-        // 3. Logs from Absences registered
-        $absences = Absence::with('student')->orderBy('id', 'desc')->limit(8)->get();
-        foreach ($absences as $index => $ab) {
-            $studentName = $ab->student ? ($ab->student->prenom . ' ' . $ab->student->nom) : 'Élève #' . $ab->student_id;
-            $createdAt = $ab->created_at ?? $now->copy()->subHours(1 + $index);
-            $secretaireOrProf = ($index % 2 === 0) ? $secretaire : User::where('role', 'professeur')->first();
-
-            self::create([
-                'user_id' => $secretaireOrProf?->id,
-                'user_name' => $secretaireOrProf?->name ?? 'Responsable Absences',
-                'user_role' => $secretaireOrProf?->role ?? 'secretaire',
-                'action' => 'Signalement Absence',
-                'subject_type' => 'Absence',
-                'subject_id' => (string) $ab->id,
-                'description' => "Absence enregistrée pour {$studentName} (" . ($ab->is_justified ? 'Justifiée' : 'Non justifiée') . ")",
-                'ip_address' => '192.168.1.18',
-                'details' => [
-                    'date' => $ab->date ?? $createdAt->toDateString(),
-                    'matiere' => $ab->matiere,
-                    'justified' => (bool) $ab->is_justified,
-                    'eleve' => $studentName,
-                ],
-                'created_at' => $createdAt,
-                'updated_at' => $createdAt,
-            ]);
-        }
-
-        // 4. Logs from Notifications / Avis sent
-        $notifications = Notification::orderBy('id', 'desc')->limit(6)->get();
-        foreach ($notifications as $index => $notif) {
-            $createdAt = $notif->created_at ?? $now->copy()->subHours(6 + $index);
-            self::create([
-                'user_id' => $secretaire?->id,
-                'user_name' => $secretaire?->name ?? 'Secrétariat Général',
-                'user_role' => 'secretaire',
-                'action' => 'Publication Avis',
-                'subject_type' => 'Avis & Annonce',
-                'subject_id' => (string) $notif->id,
-                'description' => "Diffusion d'une annonce : '{$notif->titre}'",
-                'ip_address' => '192.168.1.12',
-                'details' => [
-                    'titre' => $notif->titre,
-                    'categorie' => $notif->categorie,
-                    'target' => $notif->target_type ?? 'tous',
-                ],
-                'created_at' => $createdAt,
-                'updated_at' => $createdAt,
-            ]);
-        }
-
-        // 5. Logs for Admin account management / System updates
         $admin = User::where('role', 'admin')->first();
+        $secretaire = User::where('role', 'secretaire')->first() ?? $admin;
+
+        // 1. Real Grades
+        if (\Illuminate\Support\Facades\Schema::hasTable('grades')) {
+            $grades = DB::table('grades')->get();
+            foreach ($grades as $g) {
+                $teacher = User::find($g->teacher_id);
+                $student = DB::table('student')->where('idStudent', $g->student_id)->first();
+                $studentName = $student ? ($student->prenom . ' ' . $student->nom) : 'Élève #' . $g->student_id;
+                $date = $g->created_at ? Carbon::parse($g->created_at) : $now->copy()->subHours(2);
+
+                self::create([
+                    'user_id' => $teacher?->id,
+                    'user_name' => $teacher?->name ?? 'Professeur',
+                    'user_role' => 'professeur',
+                    'action' => 'Saisie Note',
+                    'subject_type' => 'Note / Évaluation',
+                    'subject_id' => (string) $g->id,
+                    'description' => "Enregistrement note ({$g->note}/20 - {$g->type}) en {$g->subject_name} pour {$studentName}",
+                    'ip_address' => '192.168.1.' . (20 + (($teacher?->id ?? 1) % 50)),
+                    'details' => [
+                        'matiere' => $g->subject_name,
+                        'note' => $g->note . '/20',
+                        'type' => $g->type,
+                        'coefficient' => $g->coefficient,
+                        'etudiant' => $studentName,
+                    ],
+                    'created_at' => $date,
+                    'updated_at' => $date,
+                ]);
+            }
+        }
+
+        // 2. Real Absences
+        if (\Illuminate\Support\Facades\Schema::hasTable('absences')) {
+            $absences = DB::table('absences')->orderBy('id', 'desc')->take(10)->get();
+            foreach ($absences as $ab) {
+                $prof = User::find($ab->prof_id);
+                $student = DB::table('student')->where('idStudent', $ab->student_id)->first();
+                $studentName = $student ? ($student->prenom . ' ' . $student->nom) : 'Élève #' . $ab->student_id;
+                $classe = DB::table('classe')->where('id', $ab->classe_id)->first();
+                $classeName = $classe->nomClasse ?? 'DEV201';
+                $date = $ab->created_at ? Carbon::parse($ab->created_at) : $now->copy()->subHours(1);
+
+                self::create([
+                    'user_id' => $prof?->id ?? $secretaire?->id,
+                    'user_name' => $prof?->name ?? ($secretaire?->name ?? 'Responsable Absences'),
+                    'user_role' => $prof ? 'professeur' : 'secretaire',
+                    'action' => 'Signalement Absence',
+                    'subject_type' => 'Absence',
+                    'subject_id' => (string) $ab->id,
+                    'description' => "Signalement d'absence en {$ab->matiere} ({$classeName}) pour {$studentName} (Séance {$ab->seance})",
+                    'ip_address' => '192.168.1.' . (10 + (($prof?->id ?? 5) % 40)),
+                    'details' => [
+                        'matiere' => $ab->matiere,
+                        'classe' => $classeName,
+                        'seance' => $ab->seance,
+                        'etudiant' => $studentName,
+                        'justified' => (bool) $ab->is_justified,
+                    ],
+                    'created_at' => $date,
+                    'updated_at' => $date,
+                ]);
+            }
+        }
+
+        // 3. Real Document Requests
+        if (\Illuminate\Support\Facades\Schema::hasTable('document_requests')) {
+            $docs = DB::table('document_requests')->orderBy('id', 'desc')->take(6)->get();
+            foreach ($docs as $dr) {
+                $student = DB::table('student')->where('idStudent', $dr->idStudent)->first();
+                $studentName = $student ? ($student->prenom . ' ' . $student->nom) : 'Élève #' . $dr->idStudent;
+                $actionLabel = ($dr->status === 'ready') ? 'Approbation Document' : (($dr->status === 'rejected') ? 'Rejet Document' : 'Traitement Demande');
+                $date = $dr->request_date ? Carbon::parse($dr->request_date) : $now->copy()->subHours(3);
+
+                self::create([
+                    'user_id' => $secretaire?->id,
+                    'user_name' => $secretaire?->name ?? 'Secrétariat Général',
+                    'user_role' => 'secretaire',
+                    'action' => $actionLabel,
+                    'subject_type' => 'Demande de Document',
+                    'subject_id' => (string) $dr->id,
+                    'description' => "Traitement de la demande '{$dr->document_type}' pour {$studentName} (Statut : " . ucfirst($dr->status ?? 'en attente') . ")",
+                    'ip_address' => '192.168.1.15',
+                    'details' => [
+                        'document' => $dr->document_type,
+                        'etudiant' => $studentName,
+                        'statut' => $dr->status,
+                    ],
+                    'created_at' => $date,
+                    'updated_at' => $date,
+                ]);
+            }
+        }
+
+        // 4. Admin System Settings
         if ($admin) {
             self::create([
                 'user_id' => $admin->id,

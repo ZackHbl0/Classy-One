@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\DocumentRequest;
 use App\Http\Requests\CreateDocumentRequest;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
@@ -19,16 +20,25 @@ class DocumentController extends Controller
                 'request_date', 'ready_date', 'admin_note', 'file_url'
             ]);
 
-        // Map strictly matching PHP behavior
-        $mapped = $requests->map(function ($r) {
+        $statusMap = [
+            'pending' => 'En attente',
+            'processing' => 'En cours',
+            'ready' => 'Prêt',
+            'rejected' => 'Rejeté',
+        ];
+
+        $mapped = $requests->map(function ($r) use ($statusMap) {
             $data = $r->toArray();
             $data['id'] = (int) $data['id'];
-            // Alias fields for Flutter as requested by the user
             $data['admin_message'] = $r->admin_note;
+            $data['raw_status'] = $r->status;
+            // Provide French status label so Flutter cards and badges display correctly
+            $data['status'] = $statusMap[$r->status] ?? ucfirst($r->status);
+            $data['ready_date'] = $r->ready_date;
             
             // Ensure we return a full absolute URL for the PDF
             if ($r->file_url) {
-                $data['pdf_url'] = url(\Illuminate\Support\Facades\Storage::url($r->file_url));
+                $data['pdf_url'] = url(Storage::url($r->file_url));
             } else {
                 $data['pdf_url'] = null;
             }
@@ -45,21 +55,24 @@ class DocumentController extends Controller
     public function store(CreateDocumentRequest $request)
     {
         $student = $request->user();
-
         $validated = $request->validated();
 
-        DocumentRequest::create([
+        $urgencyRaw = strtolower($validated['urgency'] ?? 'normal');
+        $urgency = str_starts_with($urgencyRaw, 'urg') ? 'urgent' : 'normal';
+
+        $doc = DocumentRequest::create([
             'idStudent' => $student->idStudent,
             'document_type' => $validated['documentType'],
-            'reason' => $validated['reason'],
-            'urgency' => $validated['urgency'],
+            'reason' => $validated['reason'] ?? 'Demande de document',
+            'urgency' => $urgency,
             'status' => 'pending',
-            'request_date' => date('Y-m-d H:i:s')
+            'request_date' => now(),
         ]);
 
         return response()->json([
             "success" => true,
-            "message" => "Demande soumise avec succès."
+            "message" => "Demande soumise avec succès.",
+            "data" => $doc,
         ]);
     }
 }

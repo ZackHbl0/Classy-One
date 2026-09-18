@@ -17,20 +17,23 @@ class CreateDocumentRequest extends FormRequest
     {
         return [
             'documentType' => 'required|string|max:100',
-            'reason' => 'required|string|max:500',
-            'urgency' => 'required|string|max:50',
+            'reason' => 'nullable|string|max:500',
+            'urgency' => 'nullable|string|max:50',
         ];
     }
 
     public function messages(): array
     {
-        return {};
+        return [
+            'documentType.required' => 'Le type de document est requis.',
+        ];
     }
 
     protected function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(response()->json([
             'status' => 'error',
+            'success' => false,
             'message' => $validator->errors()->first() ?: 'Erreur de validation',
             'errors' => $validator->errors(),
         ], 422));

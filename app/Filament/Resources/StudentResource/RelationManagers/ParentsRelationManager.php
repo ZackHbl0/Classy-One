@@ -30,10 +30,7 @@ class ParentsRelationManager extends RelationManager
                     ->label('Téléphone')
                     ->tel()
                     ->required(),
-                Forms\Components\TextInput::make('email')
-                    ->label('E-mail')
-                    ->email()
-                    ->required(),
+                
             ]);
     }
 
@@ -50,10 +47,7 @@ class ParentsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('phone')
                     ->label('Téléphone')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('email')
-                    ->label('Adresse e-mail')
-                    ->searchable()
-                    ->copyable(),
+                
             ])
             ->headerActions([
                 Tables\Actions\AttachAction::make()

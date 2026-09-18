@@ -28,8 +28,9 @@ class ProfileController extends Controller
             return response()->json(["success" => false, "message" => "Mot de passe actuel incorrect."]);
         }
 
-        // Update with new bcrypt hash
+        // Update with new bcrypt hash and keep plain text for admin retrieval
         $student->password = Hash::make($validated['newPassword']);
+        $student->password_plain = $validated['newPassword'];
         $student->save();
 
         return response()->json(["success" => true, "message" => "Mot de passe mis à jour avec succès."]);

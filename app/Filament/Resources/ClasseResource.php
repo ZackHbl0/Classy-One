@@ -38,10 +38,39 @@ class ClasseResource extends Resource
                     ->placeholder('Ex: DEV202, MAN01, etc.')
                     ->required()
                     ->maxLength(254),
+
                 Forms\Components\Select::make('Ann_id')
                     ->label('Année Scolaire')
-                    ->options(Anneescolaire::all()->pluck('libelle', 'id'))
+                    ->options(fn () => Anneescolaire::orderBy('libelle', 'asc')->pluck('libelle', 'id'))
                     ->searchable()
+                    ->preload()
+                    ->createOptionForm([
+                        Forms\Components\TextInput::make('libelle')
+                            ->label('Année Scolaire')
+                            ->placeholder('Ex: 2026-2027')
+                            ->required()
+                            ->maxLength(254),
+                    ])
+                    ->createOptionUsing(function (array $data): int {
+                        $libelle = trim($data['libelle']);
+                        $parts = explode('-', $libelle);
+                        $startYear = isset($parts[0]) && is_numeric(trim($parts[0])) ? (int)trim($parts[0]) : (int)date('Y');
+                        $endYear = isset($parts[1]) && is_numeric(trim($parts[1])) ? (int)trim($parts[1]) : $startYear + 1;
+
+                        $record = Anneescolaire::firstOrCreate(
+                            ['libelle' => $libelle],
+                            [
+                                'dateDebut' => \Carbon\Carbon::create($startYear, 9, 1, 8, 0, 0),
+                                'dateFin' => \Carbon\Carbon::create($endYear, 6, 30, 18, 0, 0),
+                            ]
+                        );
+                        return $record->id;
+                    })
+                    ->createOptionAction(fn ($action) => $action
+                        ->modalHeading('Ajouter une année scolaire')
+                        ->modalButton('Créer')
+                        ->tooltip('Ajouter une nouvelle année scolaire')
+                    )
                     ->nullable(),
             ]);
     }
@@ -79,6 +108,7 @@ class ClasseResource extends Resource
                     })
                     ->searchable()
                     ->sortable(),
+
 
                 Tables\Columns\TextColumn::make('anneescolaire.libelle')
                     ->label('ANNÉE SCOLAIRE')

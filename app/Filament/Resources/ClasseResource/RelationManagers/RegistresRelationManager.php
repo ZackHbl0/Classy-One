@@ -22,8 +22,11 @@ class RegistresRelationManager extends RelationManager
             ->schema([
                 Forms\Components\Select::make('idStudent')
                     ->label('Étudiant')
-                    ->options(function () {
-                        return \App\Models\Student::all()->mapWithKeys(function ($student) {
+                    ->options(function (\Filament\Resources\RelationManagers\RelationManager $livewire) {
+                        $classId = $livewire->getOwnerRecord()->id;
+                        return \App\Models\Student::whereDoesntHave('registres', function ($query) use ($classId) {
+                            $query->where('Cla_id', $classId);
+                        })->get()->mapWithKeys(function ($student) {
                             return [$student->idStudent => $student->nom . ' ' . $student->prenom . ' (' . $student->matricule . ')'];
                         });
                     })

@@ -36,8 +36,8 @@ class AuditLogResource extends Resource
      */
     public static function shouldRegisterNavigation(): bool
     {
-        $user = auth()->user();
-        return $user && $user->isAdmin();
+        // Removed from sidebar - now embedded directly in the Admin Dashboard
+        return false;
     }
 
     public static function canViewAny(): bool

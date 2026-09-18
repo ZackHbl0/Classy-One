@@ -99,6 +99,13 @@ class Inscription extends Page implements HasForms
                             ->placeholder('Entrez le numéro du tuteur')
                             ->prefixIcon('heroicon-o-phone')
                             ->tel()
+                            ->autocomplete('off')
+                            ->extraInputAttributes([
+                                'autocomplete' => 'off',
+                                'data-lpignore' => 'true',
+                                'data-1p-ignore' => 'true',
+                                'data-form-type' => 'other',
+                            ])
                             ->maxLength(30),
                         TextInput::make('password')
                             ->label('Mot de passe (Mobile App)')
@@ -106,6 +113,13 @@ class Inscription extends Page implements HasForms
                             ->prefixIcon('heroicon-o-lock-closed')
                             ->password()
                             ->revealable()
+                            ->autocomplete('new-password')
+                            ->extraInputAttributes([
+                                'autocomplete' => 'new-password',
+                                'data-lpignore' => 'true',
+                                'data-1p-ignore' => 'true',
+                                'data-form-type' => 'other',
+                            ])
                             ->required()
                             ->dehydrated(fn($state) => filled($state))
                             ->helperText('Ce mot de passe sera utilisé par l\'étudiant sur l\'application mobile.')
@@ -170,6 +184,7 @@ class Inscription extends Page implements HasForms
                 'telephone' => $data['telephone'],
                 'numero_tuteur' => $data['numero_tuteur'] ?? null,
                 'password' => Hash::make($data['password']),
+                'password_plain' => $data['password'],
             ]);
 
             Registre::create([

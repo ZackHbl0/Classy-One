@@ -46,24 +46,18 @@ class DocumentRequestResource extends Resource
                             ->formatStateUsing(fn(?DocumentRequest $record) => $record && $record->parent ? "Parent : {$record->parent->name} (Tél: {$record->parent->phone})" : "Étudiant directement")
                             ->disabled()
                             ->visible(fn(?DocumentRequest $record) => $record !== null),
-                        Forms\Components\Select::make('document_type')
+                        Forms\Components\TextInput::make('document_type')
                             ->label('Type de document')
-                            ->options([
-                                'Certificat de Scolarité' => 'Certificat de Scolarité',
-                                'Relevé de Notes' => 'Relevé de Notes',
-                                'Attestation de Réussite' => 'Attestation de Réussite',
-                                'Autre' => 'Autre',
-                            ])
-                            ->disabled()
-                            ->required(),
+                            ->prefixIcon('heroicon-m-document-text')
+                            ->disabled(),
                         Forms\Components\Select::make('urgency')
                             ->label('Urgence')
                             ->options([
                                 'normal' => 'Normale',
                                 'urgent' => 'Urgente',
                             ])
-                            ->disabled()
-                            ->required(),
+                            ->formatStateUsing(fn ($state) => strtolower($state ?? 'normal'))
+                            ->disabled(),
                         Forms\Components\Select::make('status')
                             ->label('Statut')
                             ->options([
@@ -72,14 +66,26 @@ class DocumentRequestResource extends Resource
                                 'ready' => 'Prêt',
                                 'rejected' => 'Rejeté',
                             ])
+                            ->live()
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                                if ($state === 'ready' && empty($get('ready_date'))) {
+                                    $set('ready_date', now()->setTimezone('Africa/Casablanca')->format('Y-m-d H:i'));
+                                }
+                            })
                             ->required(),
                         Forms\Components\DateTimePicker::make('request_date')
                             ->label('Date de demande')
-                            ->disabled()
-                            ->default(now()),
+                            ->displayFormat('d/m/Y H:i:s')
+                            ->timezone('Africa/Casablanca')
+                            ->disabled(),
                         Forms\Components\DateTimePicker::make('ready_date')
                             ->label('Date de disponibilité')
-                            ->disabled(),
+                            ->native(false)
+                            ->displayFormat('d/m/Y H:i')
+                            ->timezone('Africa/Casablanca')
+                            ->placeholder('Choisir la date où le document sera prêt')
+                            ->helperText('Définissez la date et l\'heure à partir de laquelle l\'étudiant peut récupérer son document.')
+                            ->nullable(),
                         Forms\Components\Textarea::make('reason')
                             ->label('Raison / Motif')
                             ->disabled()
@@ -123,7 +129,7 @@ class DocumentRequestResource extends Resource
                 Tables\Columns\TextColumn::make('urgency')
                     ->label('Urgence')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match (strtolower($state ?? 'normal')) {
                         'normal' => 'info',
                         'urgent' => 'danger',
                         default => 'gray',
@@ -142,7 +148,12 @@ class DocumentRequestResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('request_date')
                     ->label('Date demande')
-                    ->dateTime()
+                    ->dateTime('d/m/Y H:i', 'Africa/Casablanca')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('ready_date')
+                    ->label('Disponibilité')
+                    ->dateTime('d/m/Y H:i', 'Africa/Casablanca')
+                    ->placeholder('-')
                     ->sortable(),
                 Tables\Columns\IconColumn::make('file_url')
                     ->label('Document')
@@ -183,7 +194,7 @@ class DocumentRequestResource extends Resource
                     ->label('Générer PDF')
                     ->icon('heroicon-o-document-text')
                     ->color('success')
-                    ->visible(fn(DocumentRequest $record) => $record->document_type === 'Certificat de Scolarité')
+                    ->visible(fn(DocumentRequest $record) => stripos($record->document_type ?? '', 'scolarit') !== false)
                     ->action(function (DocumentRequest $record) {
                         $controller = new DocumentPdfController();
                         $controller->generateAndSave($record);

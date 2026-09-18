@@ -28,6 +28,8 @@ class Settings extends Page implements HasForms
 
     protected static ?string $title = 'Paramètres de l\'établissement';
 
+    
+
     protected static string $view = 'filament.pages.settings';
 
     protected static ?int $navigationSort = 101;
@@ -39,8 +41,7 @@ class Settings extends Page implements HasForms
      */
     public static function shouldRegisterNavigation(): bool
     {
-        $user = auth()->user();
-        return $user && $user->isAdmin();
+        return false;
     }
 
     public function mount(): void

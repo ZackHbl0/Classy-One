@@ -11,6 +11,8 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class ParentResource extends Resource
 {
@@ -49,13 +51,7 @@ class ParentResource extends Resource
                             ->label('Numéro de téléphone')
                             ->tel()
                             ->required()
-                            ->maxLength(255),
-
-                        Forms\Components\TextInput::make('email')
-                            ->label('Adresse e-mail')
-                            ->email()
-                            ->required()
-                            ->unique(SchoolParent::class, 'email', ignoreRecord: true)
+                            ->unique(SchoolParent::class, 'phone', ignoreRecord: true)
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('password')
@@ -67,7 +63,7 @@ class ParentResource extends Resource
                             ->required(fn(string $context): bool => $context === 'create')
                             ->helperText('Laissez vide lors de la modification pour conserver le mot de passe actuel.')
                             ->maxLength(255),
-                    ])->columns(2),
+                    ])->columns(3),
 
                 Forms\Components\Section::make('Enfants / Élèves rattachés')
                     ->description('Sélectionnez les élèves sous la responsabilité de ce parent.')
@@ -75,12 +71,25 @@ class ParentResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('students')
                             ->label('Élèves rattachés')
-                            ->relationship('students', 'nom')
+                            ->relationship(
+                                name: 'students',
+                                titleAttribute: 'nom',
+                                modifyQueryUsing: function (Builder $query, ?Model $record) {
+                                    if ($record && $record->exists) {
+                                        $query->where(function ($q) use ($record) {
+                                            $q->whereDoesntHave('parents')
+                                              ->orWhereHas('parents', fn ($subQ) => $subQ->where('parent_id', $record->id));
+                                        });
+                                    } else {
+                                        $query->whereDoesntHave('parents');
+                                    }
+                                }
+                            )
                             ->getOptionLabelFromRecordUsing(fn($record) => "{$record->nom} {$record->prenom} ({$record->matricule})")
                             ->multiple()
                             ->searchable()
                             ->preload()
-                            ->helperText('Un parent peut être associé à un ou plusieurs élèves simultanément.')
+                            ->helperText('Seuls les élèves qui ne sont pas encore rattachés à un parent sont proposés.')
                             ->columnSpanFull(),
                     ]),
             ]);
@@ -100,12 +109,6 @@ class ParentResource extends Resource
                     ->label('Téléphone')
                     ->searchable()
                     ->icon('heroicon-m-phone'),
-
-                Tables\Columns\TextColumn::make('email')
-                    ->label('E-mail')
-                    ->searchable()
-                    ->copyable()
-                    ->icon('heroicon-m-envelope'),
 
                 Tables\Columns\TextColumn::make('students.nom')
                     ->label('Enfants')

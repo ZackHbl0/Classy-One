@@ -17,7 +17,9 @@ class Student extends Authenticatable
         'matricule',
         'nom',
         'prenom',
+        'frais_scolarite',
         'password',
+        'password_plain',
         'telephone',
         'numero_tuteur',
         'fcmToken',
@@ -27,6 +29,7 @@ class Student extends Authenticatable
 
     protected $hidden = [
         'password',
+        'password_plain',
     ];
 
     public function getFullNameAttribute()
@@ -120,5 +123,77 @@ class Student extends Authenticatable
             'parent_id'
         )->withTimestamps();
     }
-}
 
+    public const FRAIS_SCOLARITE_DEFAUT = 15000.00;
+
+    public function getFraisScolariteTotalAttribute(): float
+    {
+        return (float) ($this->attributes['frais_scolarite'] ?? self::FRAIS_SCOLARITE_DEFAUT);
+    }
+
+    public function getTotalPayeAttribute(): float
+    {
+        $total = 0.0;
+        foreach ($this->paiements as $p) {
+            $st = mb_strtolower(trim($p->statut ?? ''));
+            if ($st === 'payé' || $st === 'paye') {
+                $total += (float) $p->montant;
+            }
+        }
+        return $total;
+    }
+
+    public function getResteAPayerAttribute(): float
+    {
+        $totalDu = $this->frais_scolarite_total;
+        $totalPaye = $this->total_paye;
+        return max(0.0, $totalDu - $totalPaye);
+    }
+
+    public function getPourcentagePayeAttribute(): float
+    {
+        $totalDu = $this->frais_scolarite_total;
+        if ($totalDu <= 0) return 100.0;
+        return min(100.0, round(($this->total_paye / $totalDu) * 100, 1));
+    }
+
+    public function getStatutFinancierAttribute(): array
+    {
+        $totalDu = $this->frais_scolarite_total;
+        $totalPaye = $this->total_paye;
+        $reste = $this->reste_a_payer;
+        $pourcentage = $this->pourcentage_paye;
+
+        if ($reste <= 0.001 && $totalPaye >= $totalDu) {
+            return [
+                'code' => 'en_regle',
+                'label' => 'Scolarité entièrement réglée',
+                'badge' => 'En règle (0 MAD)',
+                'color' => 'success',
+                'is_en_regle' => true,
+                'pourcentage' => 100.0,
+            ];
+        }
+
+        if ($totalPaye <= 0) {
+            return [
+                'code' => 'impaye_total',
+                'label' => 'Aucun versement — Reste : ' . number_format($reste, 2) . ' MAD',
+                'badge' => 'Reste: ' . number_format($reste, 2) . ' MAD',
+                'color' => 'danger',
+                'is_en_regle' => false,
+                'pourcentage' => 0.0,
+            ];
+        }
+
+        return [
+            'code' => 'partiel',
+            'label' => 'Partiel (' . $pourcentage . '%) — Reste : ' . number_format($reste, 2) . ' MAD',
+            'badge' => 'Reste: ' . number_format($reste, 2) . ' MAD',
+            'color' => 'warning',
+            'is_en_regle' => false,
+            'pourcentage' => $pourcentage,
+        ];
+    }
+
+}

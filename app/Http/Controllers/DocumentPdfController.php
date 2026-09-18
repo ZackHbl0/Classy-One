@@ -64,7 +64,7 @@ class DocumentPdfController extends Controller
 
         $docRequest->update([
             'file_url' => Storage::url($fileName),
-            'status' => 'Prêt', // mark as ready once generated
+            'status' => 'ready', // mark as ready once generated
             'ready_date' => now(),
         ]);
 
