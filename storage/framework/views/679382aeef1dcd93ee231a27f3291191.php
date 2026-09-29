@@ -563,10 +563,10 @@ html, body {
 
 </style>
 
-{{-- LEFT HALF: TEAL/GREEN OVERLAY WITH LOGO & BRANDING --}}
+
 <div class="cl-left-half">
     <div class="cl-brand-wrapper">
-        {{-- Graduation Cap Glowing Circle --}}
+        
         <div class="cl-cap-glow-container">
             <div class="cl-cap-halo"></div>
             <div class="cl-cap-circle">
@@ -577,13 +577,13 @@ html, body {
             </div>
         </div>
 
-        {{-- ClassyOne Brand Name --}}
+        
         <h1 class="cl-logo-text">Classy<span>One</span></h1>
 
-        {{-- Accent Divider --}}
+        
         <div class="cl-logo-divider"></div>
 
-        {{-- Tagline --}}
+        
         <p class="cl-tagline">
             Restez connecté à votre école.<br>
             Notifications, planning, événements —<br>
@@ -591,7 +591,7 @@ html, body {
         </p>
     </div>
 
-    {{-- Bottom Institution Pill Badge --}}
+    
     <div class="cl-school-badge">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 9l9-6 9 6v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
@@ -601,10 +601,10 @@ html, body {
     </div>
 </div>
 
-{{-- RIGHT HALF: CLEAN WHITE CARD ON LIGHT BACKGROUND --}}
+
 <div class="cl-right-half">
     <div class="cl-card">
-        {{-- Top User Badge --}}
+        
         <div class="cl-user-badge">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
@@ -612,27 +612,65 @@ html, body {
             </svg>
         </div>
 
-        {{-- Card Titles --}}
+        
         <h2 class="cl-card-title">Bienvenue !</h2>
         <p class="cl-card-subtitle">Connectez-vous pour accéder à votre espace</p>
 
-        {{-- Hidden decoy inputs to prevent aggressive Chrome/browser autofill of saved passwords --}}
+        
         <input type="text" name="decoy_username" style="display:none!important;position:absolute;left:-9999px" tabindex="-1" autocomplete="off" />
         <input type="password" name="decoy_password" style="display:none!important;position:absolute;left:-9999px" tabindex="-1" autocomplete="new-password" />
 
-        {{-- Filament Authentication Form --}}
-        <x-filament-panels::form wire:submit="authenticate" autocomplete="off">
-            {{ $this->form }}
+        
+        <?php if (isset($component)) { $__componentOriginald09a0ea6d62fc9155b01d885c3fdffb3 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginald09a0ea6d62fc9155b01d885c3fdffb3 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'filament-panels::components.form.index','data' => ['wire:submit' => 'authenticate','autocomplete' => 'off']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('filament-panels::form'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['wire:submit' => 'authenticate','autocomplete' => 'off']); ?>
+            <?php echo e($this->form); ?>
+
 
             <div style="margin-top: 10px;">
-                <x-filament-panels::form.actions :actions="$this->getCachedFormActions()" :full-width="true" />
+                <?php if (isset($component)) { $__componentOriginal742ef35d02cb00943edd9ad8ebf61966 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal742ef35d02cb00943edd9ad8ebf61966 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'filament-panels::components.form.actions','data' => ['actions' => $this->getCachedFormActions(),'fullWidth' => true]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('filament-panels::form.actions'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['actions' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($this->getCachedFormActions()),'full-width' => true]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal742ef35d02cb00943edd9ad8ebf61966)): ?>
+<?php $attributes = $__attributesOriginal742ef35d02cb00943edd9ad8ebf61966; ?>
+<?php unset($__attributesOriginal742ef35d02cb00943edd9ad8ebf61966); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal742ef35d02cb00943edd9ad8ebf61966)): ?>
+<?php $component = $__componentOriginal742ef35d02cb00943edd9ad8ebf61966; ?>
+<?php unset($__componentOriginal742ef35d02cb00943edd9ad8ebf61966); ?>
+<?php endif; ?>
             </div>
-        </x-filament-panels::form>
+         <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginald09a0ea6d62fc9155b01d885c3fdffb3)): ?>
+<?php $attributes = $__attributesOriginald09a0ea6d62fc9155b01d885c3fdffb3; ?>
+<?php unset($__attributesOriginald09a0ea6d62fc9155b01d885c3fdffb3); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginald09a0ea6d62fc9155b01d885c3fdffb3)): ?>
+<?php $component = $__componentOriginald09a0ea6d62fc9155b01d885c3fdffb3; ?>
+<?php unset($__componentOriginald09a0ea6d62fc9155b01d885c3fdffb3); ?>
+<?php endif; ?>
 
-        {{-- Security Disclaimer --}}
+        
         <div class="cl-card-disclaimer">
             Accès sécurisé réservé au personnel et aux étudiants.
         </div>
     </div>
 </div>
-</div>
+</div><?php /**PATH C:\laragon\www\Classy-One\resources\views/filament/pages/auth/login.blade.php ENDPATH**/ ?>

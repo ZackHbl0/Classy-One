@@ -2,7 +2,7 @@
 
 $__newAttributes = [];
 $__propNames = \Illuminate\View\ComponentAttributeBag::extractPropNames(([
-    'notification',
+    'method' => 'post',
 ]));
 
 foreach ($attributes->all() as $__key => $__value) {
@@ -19,7 +19,7 @@ unset($__propNames);
 unset($__newAttributes);
 
 foreach (array_filter(([
-    'notification',
+    'method' => 'post',
 ]), 'is_string', ARRAY_FILTER_USE_KEY) as $__key => $__value) {
     $$__key = $$__key ?? $__value;
 }
@@ -32,17 +32,16 @@ foreach ($attributes->all() as $__key => $__value) {
 
 unset($__defined_vars, $__key, $__value); ?>
 
-<div
-    x-data="notificationComponent({ notification: <?php echo \Illuminate\Support\Js::from($notification->toArray())->toHtml() ?> })"
-    <?php echo e($attributes
-            ->merge([
-                'wire:key' => "{$this->getId()}.notifications.{$notification->getId()}",
-                'x-on:close-notification.window' => "if (\$event.detail.id == '{$notification->getId()}') close()",
-            ], escape: false)
-            ->class(['pointer-events-auto invisible'])); ?>
+<form
+    method="<?php echo e($method); ?>"
+    x-data="{ isProcessing: false }"
+    x-on:submit="if (isProcessing) $event.preventDefault()"
+    x-on:form-processing-started="isProcessing = true"
+    x-on:form-processing-finished="isProcessing = false"
+    <?php echo e($attributes->class(['fi-form grid gap-y-6'])); ?>
 
 >
     <?php echo e($slot); ?>
 
-</div>
-<?php /**PATH C:\laragon\www\Classy-One\vendor\filament\notifications\resources\views/components/notification.blade.php ENDPATH**/ ?>
+</form>
+<?php /**PATH C:\laragon\www\Classy-One\vendor\filament\filament\resources\views/components/form/index.blade.php ENDPATH**/ ?>

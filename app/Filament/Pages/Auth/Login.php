@@ -5,19 +5,25 @@ namespace App\Filament\Pages\Auth;
 use Filament\Pages\Auth\Login as BaseLogin;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Checkbox;
 use Filament\Actions\Action;
+use Filament\Support\Enums\IconPosition;
 
 class Login extends BaseLogin
 {
-    /**
-     * @var view-string
-     */
     protected static string $view = 'filament.pages.auth.login';
+    protected static string $layout = 'layouts.filament-login';
 
-    /**
-     * @var view-string
-     */
-    protected static string $layout = 'filament-panels::components.layout.base';
+    public function mount(): void
+    {
+        parent::mount();
+
+        $this->form->fill([
+            'email' => '',
+            'password' => '',
+            'remember' => false,
+        ]);
+    }
 
     protected function getEmailFormComponent(): Component
     {
@@ -25,14 +31,15 @@ class Login extends BaseLogin
             ->label('Nom d\'utilisateur')
             ->placeholder('Saisir votre nom d\'utilisateur')
             ->prefixIcon('heroicon-o-user')
-            // Using email type as it's default in filament, but if they want pure username we can remove ->email() 
-            // In the default login it forces email type, if we want text we just omit ->email() if they use username. 
-            // Often, it's really an email. The image says "Saisir votre nom d'utilisateur", but often users keep email structure. 
-            // Let's keep it without ->email() modifier to allow typical strings, but wait, the default BaseLogin checks Filament::auth()->attempt with 'email' => $data['email']. So whether it has email validation or not, it works.
             ->required()
-            ->autocomplete()
+            ->autocomplete('off')
             ->autofocus()
-            ->extraInputAttributes(['tabindex' => 1]);
+            ->default('')
+            ->extraInputAttributes([
+                'tabindex' => 1,
+                'autocomplete' => 'off',
+                'data-lpignore' => 'true',
+            ]);
     }
 
     protected function getPasswordFormComponent(): Component
@@ -43,15 +50,29 @@ class Login extends BaseLogin
             ->placeholder('••••••••')
             ->password()
             ->revealable(filament()->arePasswordsRevealable())
-            ->autocomplete('current-password')
+            ->autocomplete('new-password')
+            ->default('')
             ->required()
-            ->extraInputAttributes(['tabindex' => 2]);
+            ->extraInputAttributes([
+                'tabindex' => 2,
+                'autocomplete' => 'new-password',
+                'data-lpignore' => 'true',
+            ]);
+    }
+
+    protected function getRememberFormComponent(): Component
+    {
+        return Checkbox::make('remember')
+            ->label('Se souvenir de moi')
+            ->default(false);
     }
 
     protected function getAuthenticateFormAction(): Action
     {
         return Action::make('authenticate')
             ->label('Se connecter')
-            ->submit('authenticate');
+            ->submit('authenticate')
+            ->icon('heroicon-o-arrow-right')
+            ->iconPosition(IconPosition::After);
     }
 }
