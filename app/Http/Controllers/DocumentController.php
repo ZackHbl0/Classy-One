@@ -27,7 +27,7 @@ class DocumentController extends Controller
             'rejected' => 'Rejeté',
         ];
 
-        $mapped = $requests->map(function ($r) use ($statusMap) {
+        $mapped = $requests->map(function ($r) use ($statusMap, $request) {
             $data = $r->toArray();
             $data['id'] = (int) $data['id'];
             $data['admin_message'] = $r->admin_note;
@@ -36,10 +36,14 @@ class DocumentController extends Controller
             $data['status'] = $statusMap[$r->status] ?? ucfirst($r->status);
             $data['ready_date'] = $r->ready_date;
             
-            // Ensure we return a full absolute URL for the PDF
+            // Ensure we return a full reachable URL for the PDF
             if ($r->file_url) {
-                $data['pdf_url'] = url(Storage::url($r->file_url));
+                $relativeStorage = preg_replace('#^(public/|storage/)#', '', ltrim($r->file_url, '/'));
+                $data['file_url'] = $relativeStorage;
+                // Use incoming request scheme and host (e.g. http://192.168.100.99:8000) so mobile phones can connect
+                $data['pdf_url'] = $request->getSchemeAndHttpHost() . '/storage/' . $relativeStorage;
             } else {
+                $data['file_url'] = null;
                 $data['pdf_url'] = null;
             }
             

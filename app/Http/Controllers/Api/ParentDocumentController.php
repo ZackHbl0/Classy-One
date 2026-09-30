@@ -57,7 +57,7 @@ class ParentDocumentController extends Controller
 
             $requests = $query->orderBy('request_date', 'desc')->get();
 
-            $mapped = $requests->map(function ($r) {
+            $mapped = $requests->map(function ($r) use ($request) {
                 $statusLabels = [
                     'pending' => 'En attente',
                     'processing' => 'En cours',
@@ -84,7 +84,8 @@ class ParentDocumentController extends Controller
                     'rejection_reason' => $r->status === 'rejected' ? $r->admin_note : null,
                     'is_ready' => $r->status === 'ready',
                     'has_pdf' => !empty($r->file_url),
-                    'pdf_url' => $r->file_url ? url(Storage::url($r->file_url)) : null,
+                    'file_url' => $r->file_url ? preg_replace('#^(public/|storage/)#', '', ltrim($r->file_url, '/')) : null,
+                    'pdf_url' => $r->file_url ? ($request->getSchemeAndHttpHost() . '/storage/' . preg_replace('#^(public/|storage/)#', '', ltrim($r->file_url, '/'))) : null,
                 ];
             });
 

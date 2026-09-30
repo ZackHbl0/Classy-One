@@ -46,7 +46,15 @@ class EventResource extends Resource
                             ->label('Date & Heure')
                             ->required(),
                         Forms\Components\TextInput::make('lieu')
+                            ->label('Lieu')
+                            ->placeholder('Ex: Salle polyvalente, Rabat...')
                             ->maxLength(255),
+                        Forms\Components\TextInput::make('prix')
+                            ->label('Prix (MAD)')
+                            ->numeric()
+                            ->prefix('MAD')
+                            ->placeholder('Gratuit si non renseigné')
+                            ->nullable(),
                         Forms\Components\Textarea::make('description')
                             ->columnSpanFull(),
                     ])->columns(2),
@@ -80,6 +88,12 @@ class EventResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('lieu')
                     ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('prix')
+                    ->label('Prix')
+                    ->formatStateUsing(fn ($state) => ($state !== null && (float)$state > 0) ? number_format((float)$state, 2, ',', ' ') . ' MAD' : 'Gratuit')
+                    ->badge()
+                    ->color(fn ($state) => ($state !== null && (float)$state > 0) ? 'warning' : 'success')
                     ->sortable(),
             ])
             ->filters([

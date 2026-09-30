@@ -34,8 +34,13 @@ class EventController extends Controller
             // (e.g. http://192.168.x.x/.../storage/), so the API never hard-codes
             // a host and images work on any local IP without touching the backend.
             $imagePath = $e->pieceJointe
-                ? ltrim($e->pieceJointe, '/')
+                ? preg_replace('#^(public/|storage/)#', '', ltrim($e->pieceJointe, '/'))
                 : null;
+
+            $priceText = 'Gratuit';
+            if ($e->prix !== null && $e->prix !== '' && (float)$e->prix > 0) {
+                $priceText = number_format((float)$e->prix, 0, ',', ' ') . ' MAD';
+            }
 
             return [
                 "id"           => (int) $e->id,
@@ -47,7 +52,7 @@ class EventController extends Controller
                 "category"     => $e->categorie ?? 'Académique',
                 "isConfirmed"  => $isRegistered,
                 "participants" => $participantCount,
-                "price"        => $e->prix ?? 'Gratuit',
+                "price"        => $priceText,
             ];
         });
 

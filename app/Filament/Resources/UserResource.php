@@ -71,16 +71,27 @@ class UserResource extends Resource
                 ->description('Créez ou modifiez un compte employé.')
                 ->icon('heroicon-o-user-circle')
                 ->schema([
+                    Forms\Components\TextInput::make('matricule')
+                        ->label('Matricule (Identifiant Employé)')
+                        ->placeholder('Ex: ADM001, SEC001, PROF001...')
+                        ->prefixIcon('heroicon-m-identification')
+                        ->required()
+                        ->unique(User::class, 'matricule', ignoreRecord: true)
+                        ->maxLength(50)
+                        ->helperText('Identifiant unique obligatoire utilisé pour la connexion.'),
+
                     Forms\Components\TextInput::make('name')
                         ->label('Nom complet')
                         ->required()
                         ->maxLength(255),
 
                     Forms\Components\TextInput::make('email')
-                        ->label('Adresse e-mail')
+                        ->label('Adresse e-mail (Optionnelle)')
                         ->email()
-                        ->required()
+                        ->nullable()
                         ->unique(User::class, 'email', ignoreRecord: true)
+                        ->placeholder('Optionnel (généré automatiquement si vide)')
+                        ->helperText('Non requis pour la connexion. Si vide, un e-mail interne sera assigné.')
                         ->maxLength(255),
 
                     Forms\Components\TextInput::make('password')
@@ -140,6 +151,14 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('matricule')
+                    ->label('Matricule')
+                    ->badge()
+                    ->color('primary')
+                    ->searchable()
+                    ->sortable()
+                    ->copyable(),
+
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nom')
                     ->searchable()
@@ -148,7 +167,8 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('email')
                     ->label('E-mail')
                     ->searchable()
-                    ->copyable(),
+                    ->copyable()
+                    ->placeholder('—'),
 
                 Tables\Columns\BadgeColumn::make('role')
                     ->label('Rôle')

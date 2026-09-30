@@ -30,6 +30,11 @@ class DocumentPdfController extends Controller
             ], 403);
         }
 
+        // If an official document was uploaded by administration, serve it directly
+        if ($docRequest->file_url && Storage::disk('public')->exists($docRequest->file_url)) {
+            return response()->file(Storage::disk('public')->path($docRequest->file_url));
+        }
+
         // Get full student details for the template
         $fullStudent = Student::find($student->idStudent);
         $registre = Registre::where('idStudent', $student->idStudent)->first();

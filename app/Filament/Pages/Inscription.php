@@ -94,19 +94,11 @@ class Inscription extends Page implements HasForms
                             ->prefixIcon('heroicon-o-phone')
                             ->tel()
                             ->maxLength(30),
-                        TextInput::make('numero_tuteur')
-                            ->label('Numéro du tuteur')
-                            ->placeholder('Entrez le numéro du tuteur')
-                            ->prefixIcon('heroicon-o-phone')
-                            ->tel()
-                            ->autocomplete('off')
-                            ->extraInputAttributes([
-                                'autocomplete' => 'off',
-                                'data-lpignore' => 'true',
-                                'data-1p-ignore' => 'true',
-                                'data-form-type' => 'other',
-                            ])
-                            ->maxLength(30),
+                        TextInput::make('frais_scolarite')
+                            ->label('Frais de scolarité annuels')
+                            ->numeric()
+                            ->prefix('MAD')
+                            ->required(),
                         TextInput::make('password')
                             ->label('Mot de passe (Mobile App)')
                             ->placeholder('Entrez le mot de passe')
@@ -182,7 +174,7 @@ class Inscription extends Page implements HasForms
                 'nom' => $data['nom'],
                 'prenom' => $data['prenom'],
                 'telephone' => $data['telephone'],
-                'numero_tuteur' => $data['numero_tuteur'] ?? null,
+                'frais_scolarite' => $data['frais_scolarite'] ?? null,
                 'password' => Hash::make($data['password']),
                 'password_plain' => $data['password'],
             ]);

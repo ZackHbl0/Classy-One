@@ -9,11 +9,12 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -21,6 +22,7 @@ class User extends Authenticatable implements FilamentUser
      * @var list<string>
      */
     protected $fillable = [
+        'matricule',
         'name',
         'email',
         'password',
@@ -28,6 +30,19 @@ class User extends Authenticatable implements FilamentUser
         'classe_id',
         'matieres',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function ($user) {
+            if (!empty($user->matricule)) {
+                $user->matricule = strtoupper(trim($user->matricule));
+            }
+            // Auto-fill a placeholder email if none provided to avoid database issues
+            if (empty($user->email) && !empty($user->matricule)) {
+                $user->email = strtolower(trim($user->matricule)) . '@classyone.internal';
+            }
+        });
+    }
 
     /**
      * The attributes that should be hidden for serialization.

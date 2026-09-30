@@ -28,9 +28,9 @@ class Login extends BaseLogin
     protected function getEmailFormComponent(): Component
     {
         return TextInput::make('email')
-            ->label('Nom d\'utilisateur')
-            ->placeholder('Saisir votre nom d\'utilisateur')
-            ->prefixIcon('heroicon-o-user')
+            ->label('Matricule')
+            ->placeholder('Saisir votre matricule (ex: ADM001)')
+            ->prefixIcon('heroicon-o-identification')
             ->required()
             ->autocomplete('off')
             ->autofocus()
@@ -40,6 +40,31 @@ class Login extends BaseLogin
                 'autocomplete' => 'off',
                 'data-lpignore' => 'true',
             ]);
+    }
+
+    protected function getCredentialsFromFormData(array $data): array
+    {
+        $login = trim($data['email'] ?? '');
+
+        // If the user inputs an email, authenticate by email
+        if (filter_var($login, FILTER_VALIDATE_EMAIL)) {
+            return [
+                'email' => $login,
+                'password' => $data['password'],
+            ];
+        }
+
+        // Otherwise authenticate by matricule (case-insensitive search)
+        $user = \App\Models\User::where('matricule', $login)
+            ->orWhere('matricule', strtoupper($login))
+            ->first();
+
+        $matricule = $user ? $user->matricule : strtoupper($login);
+
+        return [
+            'matricule' => $matricule,
+            'password' => $data['password'],
+        ];
     }
 
     protected function getPasswordFormComponent(): Component

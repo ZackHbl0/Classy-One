@@ -287,6 +287,10 @@ class ParentDashboardController extends Controller
             $counter++;
         }
 
+        $scolariteDue = (float) ($student->frais_scolarite ?? $student->frais_scolarite_total ?? 0);
+        if ($scolariteDue > 0) {
+            $totalAmount = max($scolariteDue, $totalAmount);
+        }
         $totalRemaining = max(0.0, $totalAmount - $totalPaid);
         $overallPaymentStatus = 'À jour';
         if ($hasOverdue) {

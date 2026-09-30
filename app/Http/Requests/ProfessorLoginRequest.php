@@ -16,7 +16,8 @@ class ProfessorLoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => 'required|email|max:150',
+            'matricule' => 'required_without:email|string|max:100',
+            'email' => 'nullable|string|max:150',
             'password' => 'required|string|min:4',
         ];
     }
@@ -24,8 +25,7 @@ class ProfessorLoginRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.required' => 'L\'adresse email est requise.',
-            'email.email' => 'Veuillez saisir une adresse email valide.',
+            'matricule.required_without' => 'Le matricule est obligatoire.',
             'password.required' => 'Le mot de passe est obligatoire.',
         ];
     }

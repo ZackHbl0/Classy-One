@@ -24,7 +24,13 @@ class ProfessorController extends Controller
     {
         $validated = $request->validated();
 
-        $professor = User::where('email', $validated['email'])
+        $login = trim($validated['matricule'] ?? $validated['email'] ?? '');
+
+        $professor = User::where(function ($query) use ($login) {
+                $query->where('matricule', $login)
+                      ->orWhere('matricule', strtoupper($login))
+                      ->orWhere('email', $login);
+            })
             ->whereIn('role', ['professeur', 'prof'])
             ->with('classes') // Eager load assigned classes
             ->first();
@@ -32,7 +38,7 @@ class ProfessorController extends Controller
         if (!$professor || !Hash::check($validated['password'], $professor->password)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Email ou mot de passe incorrect'
+                'message' => 'Matricule ou mot de passe incorrect'
             ], 401);
         }
 

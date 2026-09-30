@@ -224,7 +224,7 @@ class StudentResource extends Resource
                             })
                             ->badgeColor(fn($record) => $record->reste_a_payer > 0 ? 'warning' : 'success')
                             ->schema([
-                                Section::make('Synthèse Scolarité (Total : 15 000,00 MAD)')
+                                Section::make(fn($record) => 'Synthèse Scolarité (Total : ' . number_format($record->frais_scolarite_total, 2, ',', ' ') . ' MAD)')
                                     ->schema([
                                         Grid::make(3)
                                             ->schema([
