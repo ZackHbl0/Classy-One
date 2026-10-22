@@ -66,6 +66,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                \App\Http\Middleware\EnsureTwoFactorEnrolled::class,
             ])
             // Override the default Filament logout so it hits our clean-logout
             // controller that invalidates the session and regenerates CSRF before

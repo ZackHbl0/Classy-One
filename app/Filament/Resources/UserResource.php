@@ -85,15 +85,6 @@ class UserResource extends Resource
                         ->required()
                         ->maxLength(255),
 
-                    Forms\Components\TextInput::make('email')
-                        ->label('Adresse e-mail (Optionnelle)')
-                        ->email()
-                        ->nullable()
-                        ->unique(User::class, 'email', ignoreRecord: true)
-                        ->placeholder('Optionnel (généré automatiquement si vide)')
-                        ->helperText('Non requis pour la connexion. Si vide, un e-mail interne sera assigné.')
-                        ->maxLength(255),
-
                     Forms\Components\TextInput::make('password')
                         ->label('Mot de passe')
                         ->password()
@@ -107,9 +98,9 @@ class UserResource extends Resource
                     Forms\Components\Select::make('role')
                         ->label('Rôle')
                         ->options([
-                            'admin'      => '👑 Administrateur / Directeur',
-                            'secretaire' => '📋 Secrétaire',
-                            'professeur' => '🎓 Professeur',
+                            'admin'      => 'Administrateur / Directeur',
+                            'secretaire' => 'Secrétaire',
+                            'professeur' => 'Professeur',
                         ])
                         ->required()
                         ->live()
@@ -163,12 +154,6 @@ class UserResource extends Resource
                     ->label('Nom')
                     ->searchable()
                     ->sortable(),
-
-                Tables\Columns\TextColumn::make('email')
-                    ->label('E-mail')
-                    ->searchable()
-                    ->copyable()
-                    ->placeholder('—'),
 
                 Tables\Columns\BadgeColumn::make('role')
                     ->label('Rôle')

@@ -12,7 +12,16 @@ class PaymentController extends Controller
         $student = $request->user();
 
         // Paiements link through Registre
-        $paiements = Paiement::select('paiement.id', 'paiement.montant', 'paiement.dateEcheance', 'paiement.statut as statut')
+        $paiements = Paiement::select(
+                'paiement.id',
+                'paiement.reference',
+                'paiement.montant',
+                'paiement.remise_appliquee',
+                'paiement.modePaiement',
+                'paiement.dateEcheance',
+                'paiement.statut as statut',
+                'paiement.created_at'
+            )
             ->join('registre as r', 'paiement.Reg_id', '=', 'r.id')
             ->where('r.idStudent', $student->idStudent)
             ->orderBy('paiement.dateEcheance', 'desc')
@@ -43,28 +52,38 @@ class PaymentController extends Controller
             }
 
             $tranches[] = [
-                "title"   => "Tranche " . $counter,
-                "dueDate" => $date,
-                "amount"  => $formatted,
-                "status"  => $displayStatus,
+                "id"            => $p->id,
+                "reference"     => $p->reference,
+                "title"         => "Tranche " . $counter,
+                "dueDate"       => $date,
+                "amount"        => $formatted,
+                "raw_amount"    => $montant,
+                "mode_paiement" => $p->modePaiement ?? 'Espèce',
+                "status"        => $displayStatus,
+                "receipt_url"   => route('paiements.receipt.download', ['id' => $p->id]),
             ];
             $counter++;
         }
 
-        $fraisScolarite = (float) ($student->frais_scolarite ?? $student->frais_scolarite_total ?? 15000.00);
-        $totalDue = $fraisScolarite > 0 ? $fraisScolarite : max($totalTranches, 15000.00);
+        $baseTuition = (float) $student->base_tuition;
+        $remiseMontant = (float) $student->remise_montant_total;
+        $totalDue = (float) $student->frais_scolarite_total;
         $totalRemaining = max(0.0, $totalDue - $totalPaid);
         $progression = $totalDue > 0 ? round(($totalPaid / $totalDue) * 100, 1) : 0.0;
 
         return response()->json([
             "success" => true,
             "data" => [
-                "target_amount" => $totalDue,
+                "base_tuition"    => $baseTuition,
+                "remise_montant"  => $remiseMontant,
+                "remise_type"     => $student->remise_type ?? 'aucune',
+                "remise_label"    => $student->remise_label,
+                "target_amount"   => $totalDue,
                 "frais_scolarite" => $totalDue,
-                "total_paid" => $totalPaid,
+                "total_paid"      => $totalPaid,
                 "total_remaining" => $totalRemaining,
-                "progression" => $progression,
-                "tranches" => $tranches
+                "progression"     => $progression,
+                "tranches"        => $tranches
             ]
         ]);
     }

@@ -67,6 +67,42 @@ class Login extends BaseLogin
         ];
     }
 
+    protected function getForms(): array
+    {
+        return [
+            'form' => $this->form(
+                $this->makeForm()
+                    ->schema($this->getFormSchema())
+                    ->statePath('data'),
+            ),
+        ];
+    }
+
+    protected function getFormSchema(): array
+    {
+        return [
+            $this->getEmailFormComponent(),
+            $this->getPasswordFormComponent(),
+            $this->getTwoFactorCodeFormComponent(),
+            $this->getRememberFormComponent(),
+        ];
+    }
+
+    protected function getTwoFactorCodeFormComponent(): Component
+    {
+        return TextInput::make('two_factor_code')
+            ->label('Code 2FA (Google Authenticator / Secours)')
+            ->placeholder('Code à 6 chiffres ou code secours')
+            ->prefixIcon('heroicon-o-shield-check')
+            ->autocomplete('one-time-code')
+            ->helperText('Requis si l\'authentification à deux facteurs est activée pour votre profil.')
+            ->extraInputAttributes([
+                'tabindex' => 3,
+                'autocomplete' => 'one-time-code',
+                'data-lpignore' => 'true',
+            ]);
+    }
+
     protected function getPasswordFormComponent(): Component
     {
         return TextInput::make('password')
@@ -90,6 +126,70 @@ class Login extends BaseLogin
         return Checkbox::make('remember')
             ->label('Se souvenir de moi')
             ->default(false);
+    }
+
+    public function authenticate(): ?\Filament\Http\Responses\Auth\Contracts\LoginResponse
+    {
+        try {
+            $this->rateLimit(5);
+        } catch (\DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException $exception) {
+            $this->getRateLimitedNotification($exception)?->send();
+            return null;
+        }
+
+        $data = $this->form->getState();
+        $credentials = $this->getCredentialsFromFormData($data);
+        $ip = request()?->ip() ?? '127.0.0.1';
+
+        $user = \App\Models\User::where('matricule', $credentials['matricule'] ?? '')
+            ->orWhere('email', $credentials['email'] ?? '')
+            ->first();
+
+        if (!$user || !\Illuminate\Support\Facades\Hash::check($credentials['password'], $user->password)) {
+            app(\App\Services\SuspiciousActivityService::class)->handleFailedLogin(
+                $credentials['matricule'] ?? $credentials['email'] ?? 'inconnu',
+                $ip,
+                'filament'
+            );
+            $this->throwFailureValidationException();
+        }
+
+        // Verify Two-Factor Authentication if enabled for this user
+        if ($user->hasTwoFactorEnabled()) {
+            $code = trim($data['two_factor_code'] ?? '');
+            $tfaService = app(\App\Services\TwoFactorAuthService::class);
+            $secret = $tfaService->getDecryptedSecret($user);
+
+            $valid = false;
+            if (!empty($code) && $secret) {
+                if (strlen($code) === 6 && ctype_digit($code)) {
+                    $valid = $tfaService->verifyCode($secret, $code);
+                }
+                if (!$valid) {
+                    $valid = $tfaService->verifyAndConsumeRecoveryCode($user, $code);
+                }
+            }
+
+            if (!$valid) {
+                app(\App\Services\SuspiciousActivityService::class)->handleFailedLogin(
+                    $user->matricule ?: $user->email,
+                    $ip,
+                    'filament_2fa'
+                );
+
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'data.two_factor_code' => 'Code d\'authentification à 2 facteurs (TOTP) manquant ou invalide.',
+                ]);
+            }
+        }
+
+        // Reset failed login attempts on success
+        app(\App\Services\SuspiciousActivityService::class)->handleSuccessfulLogin(
+            $user->matricule ?: $user->email,
+            $ip
+        );
+
+        return parent::authenticate();
     }
 
     protected function getAuthenticateFormAction(): Action

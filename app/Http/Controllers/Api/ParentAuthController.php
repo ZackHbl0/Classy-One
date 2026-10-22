@@ -26,6 +26,7 @@ class ParentAuthController extends Controller
             ->first();
 
         if (!$parent) {
+            app(\App\Services\SuspiciousActivityService::class)->handleFailedLogin($loginInput, $request->ip(), 'parent');
             return response()->json([
                 'status' => 'error',
                 'message' => 'Identifiant ou mot de passe incorrect.',
@@ -44,11 +45,15 @@ class ParentAuthController extends Controller
         }
 
         if (!$passwordMatches) {
+            app(\App\Services\SuspiciousActivityService::class)->handleFailedLogin($loginInput, $request->ip(), 'parent');
             return response()->json([
                 'status' => 'error',
                 'message' => 'Identifiant ou mot de passe incorrect.',
             ], 401);
         }
+
+        // Reset failed login counter on success
+        app(\App\Services\SuspiciousActivityService::class)->handleSuccessfulLogin($loginInput, $request->ip());
 
         // Revoke previous tokens
         $parent->tokens()->delete();

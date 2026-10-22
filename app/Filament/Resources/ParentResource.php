@@ -47,6 +47,13 @@ class ParentResource extends Resource
                             ->required()
                             ->maxLength(255),
 
+                        Forms\Components\TextInput::make('email')
+                            ->label('Adresse email')
+                            ->email()
+                            ->required()
+                            ->unique(SchoolParent::class, 'email', ignoreRecord: true)
+                            ->maxLength(255),
+
                         Forms\Components\TextInput::make('phone')
                             ->label('Numéro de téléphone')
                             ->tel()
@@ -54,16 +61,17 @@ class ParentResource extends Resource
                             ->unique(SchoolParent::class, 'phone', ignoreRecord: true)
                             ->maxLength(255),
 
+                        
+
                         Forms\Components\TextInput::make('password')
-                            ->label('Mot de passe (Mobile App)')
+                            ->label(fn(string $operation): string => $operation === 'edit' ? 'Nouveau mot de passe (Mobile App)' : 'Mot de passe (Mobile App)')
                             ->password()
                             ->revealable()
-                            ->dehydrateStateUsing(fn($state) => Hash::make($state))
                             ->dehydrated(fn($state) => filled($state))
-                            ->required(fn(string $context): bool => $context === 'create')
-                            ->helperText('Laissez vide lors de la modification pour conserver le mot de passe actuel.')
+                            ->required(fn(string $operation): bool => $operation === 'create')
+                            ->helperText(fn(string $operation) => $operation === 'edit' ? 'Laissez vide pour conserver le mot de passe actuel.' : null)
                             ->maxLength(255),
-                    ])->columns(3),
+                    ])->columns(2),
 
                 Forms\Components\Section::make('Enfants / Élèves rattachés')
                     ->description('Sélectionnez les élèves sous la responsabilité de ce parent.')
@@ -95,6 +103,11 @@ class ParentResource extends Resource
             ]);
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with(['students.registres.classe']);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -105,17 +118,24 @@ class ParentResource extends Resource
                     ->sortable()
                     ->weight('bold'),
 
+                Tables\Columns\TextColumn::make('email')
+                    ->label('Email')
+                    ->searchable()
+                    ->icon('heroicon-m-envelope')
+                    ->copyable(),
+
                 Tables\Columns\TextColumn::make('phone')
                     ->label('Téléphone')
                     ->searchable()
-                    ->icon('heroicon-m-phone'),
+                    ->icon('heroicon-m-phone')
+                    ->copyable(),
 
                 Tables\Columns\TextColumn::make('students.nom')
                     ->label('Enfants')
                     ->badge()
                     ->color('info')
                     ->formatStateUsing(function ($record) {
-                        return $record->students->map(fn($s) => "{$s->nom} {$s->prenom}")->join(', ');
+                        return $record->students->map(fn($s) => "{$s->nom} {$s->prenom} ({$s->matricule})")->join(', ');
                     })
                     ->placeholder('Aucun élève rattaché'),
 
@@ -129,6 +149,32 @@ class ParentResource extends Resource
                 //
             ])
             ->actions([
+                Tables\Actions\Action::make('resetPassword')
+                    ->label('Réinitialiser MDP')
+                    ->icon('heroicon-o-key')
+                    ->color('warning')
+                    ->modalHeading("Réinitialisation du mot de passe tuteur")
+                    ->modalDescription("Définissez un nouveau mot de passe temporaire pour le tuteur. Il sera immédiatement chiffré (bcrypt).")
+                    ->form([
+                        Forms\Components\TextInput::make('new_password')
+                            ->label('Nouveau mot de passe')
+                            ->password()
+                            ->revealable()
+                            ->required()
+                            ->minLength(6)
+                            ->default(fn() => 'Parent@' . rand(1000, 9999)),
+                    ])
+                    ->action(function (SchoolParent $record, array $data) {
+                        $record->password = \Illuminate\Support\Facades\Hash::make($data['new_password']);
+                        $record->save();
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Mot de passe tuteur réinitialisé !')
+                            ->body("Nouveau mot de passe pour {$record->name} : {$data['new_password']}")
+                            ->success()
+                            ->persistent()
+                            ->send();
+                    }),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\UpdatePasswordRequest;
 use App\Http\Requests\UpdatePhoneRequest;
 use App\Http\Requests\UpdateFcmTokenRequest;
+use Illuminate\Support\Facades\Validator;
 
 class ProfileController extends Controller
 {
@@ -28,12 +29,33 @@ class ProfileController extends Controller
             return response()->json(["success" => false, "message" => "Mot de passe actuel incorrect."]);
         }
 
-        // Update with new bcrypt hash and keep plain text for admin retrieval
+        // Update with new bcrypt hash securely
         $student->password = Hash::make($validated['newPassword']);
-        $student->password_plain = $validated['newPassword'];
         $student->save();
 
-        return response()->json(["success" => true, "message" => "Mot de passe mis à jour avec succès."]);
+        // Revoke all other Sanctum tokens upon password change
+        if (method_exists($student, 'tokens')) {
+            $currentTokenId = $request->user()->currentAccessToken()?->id;
+            if ($currentTokenId) {
+                $student->tokens()->where('id', '!=', $currentTokenId)->delete();
+            } else {
+                $student->tokens()->delete();
+            }
+        }
+
+        \App\Models\AuditLog::create([
+            'user_id' => ($student instanceof \App\Models\User) ? $student->id : null,
+            'user_name' => $student->prenom . ' ' . $student->nom,
+            'user_role' => 'student',
+            'action' => 'password_changed',
+            'subject_type' => get_class($student),
+            'subject_id' => (string) $student->getKey(),
+            'description' => 'Changement de mot de passe du compte et révocation des autres sessions.',
+            'ip_address' => $request->ip(),
+            'details' => ['revoked_other_tokens' => true],
+        ]);
+
+        return response()->json(["success" => true, "message" => "Mot de passe mis à jour avec succès. Toutes vos autres sessions ont été déconnectées."]);
     }
 
     public function updatePhone(UpdatePhoneRequest $request)

@@ -8,6 +8,7 @@ use App\Models\Notification;
 use App\Models\Event;
 use App\Models\Paiement;
 use App\Models\DocumentRequest;
+use App\Services\PaymentService;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -252,6 +253,21 @@ class DashboardController extends Controller
                 'overdue_payments' => $overduePayments,
                 'currency'         => 'MAD',
             ],
+        ]);
+    }
+
+    /**
+     * Comprehensive financial summary and analytics for directors and administrators.
+     */
+    public function financialSummary(Request $request, PaymentService $paymentService)
+    {
+        $year = $request->query('year') ? (int) $request->query('year') : null;
+        $month = $request->query('month') ? (int) $request->query('month') : null;
+        $summary = $paymentService->getFinancialSummary($year, $month);
+
+        return response()->json([
+            'success' => true,
+            'data' => $summary,
         ]);
     }
 }

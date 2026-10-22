@@ -103,9 +103,17 @@ class ParentDashboardController extends Controller
                 ->first();
 
             if (!$student) {
+                $studentExists = Student::where('idStudent', $id)->exists();
+                if ($studentExists) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Accès refusé. Cet élève n\'est pas rattaché à votre compte parent.',
+                    ], 403);
+                }
+
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Élève non trouvé pour ce parent.',
+                    'message' => 'Élève introuvable.',
                 ], 404);
             }
 
@@ -226,7 +234,7 @@ class ParentDashboardController extends Controller
         // 3. Fee Payments / Tranches
         $paiements = collect();
         try {
-            $paiements = Paiement::select('paiement.id', 'paiement.montant', 'paiement.dateEcheance', 'paiement.statut')
+            $paiements = Paiement::select('paiement.id', 'paiement.reference', 'paiement.montant', 'paiement.dateEcheance', 'paiement.statut', 'paiement.modePaiement')
                 ->join('registre as r', 'paiement.Reg_id', '=', 'r.id')
                 ->where('r.idStudent', $student->idStudent)
                 ->orderBy('paiement.dateEcheance', 'asc')
@@ -277,17 +285,20 @@ class ParentDashboardController extends Controller
 
             $tranches[] = [
                 'id' => (int) $p->id,
+                'reference' => $p->reference,
                 'title' => 'Tranche ' . $counter,
                 'amount' => number_format($montant, 0, ',', ' ') . ' MAD',
                 'amount_raw' => $montant,
+                'mode_paiement' => $p->modePaiement ?? 'Espèce',
                 'dueDate' => $dueDateFormatted,
                 'dueDate_raw' => $p->dateEcheance ? (string) $p->dateEcheance : null,
                 'status' => $displayStatus,
+                'receipt_url' => route('paiements.receipt.download', ['id' => $p->id]),
             ];
             $counter++;
         }
 
-        $scolariteDue = (float) ($student->frais_scolarite ?? $student->frais_scolarite_total ?? 0);
+        $scolariteDue = (float) $student->frais_scolarite_total;
         if ($scolariteDue > 0) {
             $totalAmount = max($scolariteDue, $totalAmount);
         }

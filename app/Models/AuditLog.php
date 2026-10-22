@@ -23,6 +23,8 @@ class AuditLog extends Model
         'description',
         'ip_address',
         'details',
+        'signature',
+        'previous_signature',
     ];
 
     protected $casts = [
@@ -30,6 +32,229 @@ class AuditLog extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    /**
+     * Compute deterministic canonical JSON representation with sorted keys.
+     */
+    public static function canonicalJson(mixed $data): string
+    {
+        if (is_null($data) || $data === '') {
+            return '';
+        }
+
+        if (is_string($data)) {
+            $decoded = json_decode($data, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $data = $decoded;
+            } else {
+                return $data;
+            }
+        }
+
+        if (is_array($data)) {
+            $canonical = static::canonicalizeArray($data);
+            return json_encode($canonical, JSON_UNESCAPED_UNICODE);
+        }
+
+        return (string) $data;
+    }
+
+    protected static function canonicalizeArray(array $arr): array
+    {
+        if (array_keys($arr) !== range(0, count($arr) - 1)) {
+            ksort($arr);
+        }
+        foreach ($arr as $k => $v) {
+            if (is_array($v)) {
+                $arr[$k] = static::canonicalizeArray($v);
+            }
+        }
+        return $arr;
+    }
+
+    /**
+     * Retrieve the stable cryptographic HMAC key for audit logging.
+     * Supports dedicated AUDIT_HMAC_KEY in .env to survive APP_KEY rotation.
+     */
+    public static function getHmacKey(): string
+    {
+        return env('AUDIT_HMAC_KEY') 
+            ?: config('app.audit_key') 
+            ?: config('app.key') 
+            ?: 'classy_one_default_audit_salt_key_2026';
+    }
+
+    /**
+     * Path to the external audit tail anchor file (outside database).
+     */
+    public static function getTailAnchorPath(): string
+    {
+        return storage_path('app/private/audit_tail_anchor.json');
+    }
+
+    /**
+     * Update the external immutable tail anchor with the latest audit log entry.
+     */
+    public static function updateTailAnchor(AuditLog $log): void
+    {
+        try {
+            $dir = dirname(static::getTailAnchorPath());
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0755, true);
+            }
+
+            $anchor = [
+                'last_id' => (int) $log->id,
+                'last_signature' => (string) $log->signature,
+                'anchored_at' => now()->toIso8601String(),
+            ];
+
+            @file_put_contents(static::getTailAnchorPath(), json_encode($anchor, JSON_PRETTY_PRINT));
+        } catch (\Throwable) {
+            // Non-blocking fallback for environment consistency
+        }
+    }
+
+    /**
+     * Retrieve current external tail anchor state.
+     */
+    public static function getTailAnchor(): ?array
+    {
+        $path = static::getTailAnchorPath();
+        if (!file_exists($path)) {
+            return null;
+        }
+        $content = @file_get_contents($path);
+        return $content ? json_decode($content, true) : null;
+    }
+
+    protected static function booted(): void
+    {
+        // Compute cryptographic HMAC chaining upon log creation with concurrency protection
+        static::creating(function (AuditLog $log) {
+            $computeSignature = function () use ($log) {
+                $lastLog = static::orderBy('id', 'desc')->first();
+                $log->previous_signature = $lastLog?->signature ?? 'GENESIS_ROOT_HASH';
+
+                $detailsJson = static::canonicalJson($log->details);
+                $payload = implode('|', [
+                    $log->previous_signature,
+                    (string) ($log->user_id ?? '0'),
+                    (string) ($log->action ?? ''),
+                    (string) ($log->subject_type ?? ''),
+                    (string) ($log->subject_id ?? ''),
+                    (string) ($log->description ?? ''),
+                    (string) ($log->ip_address ?? ''),
+                    $detailsJson,
+                ]);
+
+                $log->signature = hash_hmac('sha256', $payload, static::getHmacKey());
+            };
+
+            // Protect against concurrent write collisions
+            try {
+                \Illuminate\Support\Facades\Cache::lock('audit_log_chain_write', 5)->block(3, $computeSignature);
+            } catch (\Throwable) {
+                $computeSignature();
+            }
+        });
+
+        // Update external tail anchor immediately after log is persisted
+        static::created(function (AuditLog $log) {
+            static::updateTailAnchor($log);
+        });
+
+        // Prevent tampering: audit logs are strictly immutable (no updates allowed)
+        static::updating(function () {
+            throw new \RuntimeException('Les journaux d\'audit sont infalsifiables et ne peuvent pas être modifiés.');
+        });
+
+        // Prevent tampering: audit logs cannot be deleted
+        static::deleting(function () {
+            throw new \RuntimeException('Les journaux d\'audit sont infalsifiables et ne peuvent pas être supprimés.');
+        });
+    }
+
+    /**
+     * Verify the cryptographic integrity of the audit log chain.
+     */
+    public static function verifyChainIntegrity(): array
+    {
+        $logs = static::whereNotNull('signature')->orderBy('id', 'asc')->get();
+        $secretKey = static::getHmacKey();
+
+        $expectedPrevious = 'GENESIS_ROOT_HASH';
+        $verifiedCount = 0;
+
+        foreach ($logs as $index => $log) {
+            if ($index === 0 && $log->previous_signature !== 'GENESIS_ROOT_HASH') {
+                $expectedPrevious = $log->previous_signature; // Handle partial chains or seeded logs
+            }
+
+            if ($log->previous_signature !== $expectedPrevious) {
+                return [
+                    'valid' => false,
+                    'broken_id' => $log->id,
+                    'error' => "Chaîne rompue à l'entrée #{$log->id} : previous_signature invalide.",
+                    'verified_count' => $verifiedCount,
+                ];
+            }
+
+            $detailsJson = static::canonicalJson($log->details);
+            $payload = implode('|', [
+                $log->previous_signature,
+                (string) ($log->user_id ?? '0'),
+                (string) ($log->action ?? ''),
+                (string) ($log->subject_type ?? ''),
+                (string) ($log->subject_id ?? ''),
+                (string) ($log->description ?? ''),
+                (string) ($log->ip_address ?? ''),
+                $detailsJson,
+            ]);
+
+            $calculatedSignature = hash_hmac('sha256', $payload, $secretKey);
+            if (!hash_equals($calculatedSignature, $log->signature)) {
+                return [
+                    'valid' => false,
+                    'broken_id' => $log->id,
+                    'error' => "Signature falsifiée détectée à l'entrée #{$log->id}.",
+                    'verified_count' => $verifiedCount,
+                ];
+            }
+
+            $expectedPrevious = $log->signature;
+            $verifiedCount++;
+        }
+
+        // Verify against external tail anchor to detect tail truncation attacks
+        $anchor = static::getTailAnchor();
+        if ($anchor && !empty($anchor['last_id'])) {
+            $lastLog = $logs->last();
+            if (!$lastLog || (int) $lastLog->id < (int) $anchor['last_id']) {
+                return [
+                    'valid' => false,
+                    'broken_id' => $anchor['last_id'],
+                    'error' => "Troncature malveillante de fin de chaîne détectée ! Le dernier ID en base (#" . ($lastLog?->id ?? 0) . ") est inférieur au dernier ID ancré (#{$anchor['last_id']}).",
+                    'verified_count' => $verifiedCount,
+                ];
+            }
+
+            if ($lastLog && (int) $lastLog->id === (int) $anchor['last_id'] && !hash_equals($lastLog->signature, (string) $anchor['last_signature'])) {
+                return [
+                    'valid' => false,
+                    'broken_id' => $lastLog->id,
+                    'error' => "L'empreinte du dernier journal d'audit ne correspond pas à l'ancrage externe !",
+                    'verified_count' => $verifiedCount,
+                ];
+            }
+        }
+
+        return [
+            'valid' => true,
+            'verified_count' => $verifiedCount,
+            'message' => 'Intégrité cryptographique de la chaîne et ancrage externe validés avec succès.',
+        ];
+    }
 
     public function user()
     {

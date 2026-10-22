@@ -99,9 +99,9 @@ class CourseResource extends Resource
 
                     Forms\Components\FileUpload::make('file_path')
                         ->label('Fichier (PDF / vidéo)')
-                        ->disk('public')
+                        ->disk('local')
                         ->directory('courses')
-                        ->visibility('public')
+                        ->visibility('private')
                         ->acceptedFileTypes([
                             'video/mp4',
                             'video/quicktime',
@@ -121,13 +121,28 @@ class CourseResource extends Resource
 
                     Forms\Components\Select::make('classe_id')
                         ->label('Classe')
-                        ->relationship('classe', 'nomClasse')
+                        ->options(function () {
+                            $user = auth()->user();
+                            if ($user?->isProfesseur()) {
+                                $classes = $user->classes->pluck('nomClasse', 'id');
+                                return $classes->isNotEmpty()
+                                    ? $classes
+                                    : \App\Models\Classe::pluck('nomClasse', 'id');
+                            }
+                            return \App\Models\Classe::pluck('nomClasse', 'id');
+                        })
+                        ->default(function () {
+                            $user = auth()->user();
+                            if ($user?->isProfesseur()) {
+                                return $user->classes->first()?->id ?? $user->classe_id;
+                            }
+                            return null;
+                        })
                         ->required()
                         ->searchable()
                         ->preload()
                         ->native(false)
-                        ->visible(fn (): bool => auth()->user()?->isAdmin() ?? false)
-                        ->default(fn (): ?int => auth()->user()?->classe_id),
+                        ->helperText('Sélectionnez la classe destinataire de ce cours.'),
 
                     Forms\Components\Select::make('professor_id')
                         ->label('Professeur')

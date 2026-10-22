@@ -26,11 +26,14 @@ class ParentsRelationManager extends RelationManager
                     ->label('Nom complet')
                     ->required()
                     ->maxLength(255),
+                Forms\Components\TextInput::make('email')
+                    ->label('Email')
+                    ->email()
+                    ->required(),
                 Forms\Components\TextInput::make('phone')
                     ->label('Téléphone')
                     ->tel()
                     ->required(),
-                
             ]);
     }
 
@@ -44,9 +47,14 @@ class ParentsRelationManager extends RelationManager
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
+                Tables\Columns\TextColumn::make('email')
+                    ->label('Email')
+                    ->searchable()
+                    ->icon('heroicon-m-envelope'),
                 Tables\Columns\TextColumn::make('phone')
                     ->label('Téléphone')
-                    ->searchable(),
+                    ->searchable()
+                    ->icon('heroicon-m-phone'),
                 
             ])
             ->headerActions([

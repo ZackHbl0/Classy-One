@@ -9,6 +9,11 @@ try {
     $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token', 'fake-token')
         ->withNotification(\Kreait\Firebase\Messaging\Notification::create('test', 'test'));
     $messaging->send($message);
-} catch (\Exception $e) {
-    echo "ERROR: " . $e->getMessage() . "\n";
+} catch (\Throwable $e) {
+    echo "ERROR CLASS: " . get_class($e) . "\n";
+    echo "ERROR MSG: " . $e->getMessage() . "\n";
+    $curr = $e;
+    while ($curr = $curr->getPrevious()) {
+        echo "CAUSED BY: " . get_class($curr) . " => " . $curr->getMessage() . "\n";
+    }
 }

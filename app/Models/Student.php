@@ -18,10 +18,13 @@ class Student extends Authenticatable
         'nom',
         'prenom',
         'frais_scolarite',
+        'remise_montant',
+        'remise_type',
+        'remise_motif',
         'password',
-        'password_plain',
         'telephone',
         'numero_tuteur',
+        'tuteur_name',
         'fcmToken',
         'event_notifications',
         'payment_notifications',
@@ -29,7 +32,6 @@ class Student extends Authenticatable
 
     protected $hidden = [
         'password',
-        'password_plain',
     ];
 
     public function getFullNameAttribute()
@@ -41,6 +43,8 @@ class Student extends Authenticatable
     {
         return [
             'last_seen_at' => 'datetime',
+            'frais_scolarite' => 'decimal:2',
+            'remise_montant' => 'decimal:2',
         ];
     }
 
@@ -126,9 +130,45 @@ class Student extends Authenticatable
 
     public const FRAIS_SCOLARITE_DEFAUT = 15000.00;
 
-    public function getFraisScolariteTotalAttribute(): float
+    public function getBaseTuitionAttribute(): float
     {
         return (float) ($this->attributes['frais_scolarite'] ?? self::FRAIS_SCOLARITE_DEFAUT);
+    }
+
+    public function getRemiseMontantTotalAttribute(): float
+    {
+        return (float) ($this->attributes['remise_montant'] ?? 0.00);
+    }
+
+    public function getFraisScolariteTotalAttribute(): float
+    {
+        $base = $this->base_tuition;
+        $remise = $this->remise_montant_total;
+        return max(0.0, $base - $remise);
+    }
+
+    public function getTargetAmountAttribute(): float
+    {
+        return $this->frais_scolarite_total;
+    }
+
+    public function getRemiseLabelAttribute(): string
+    {
+        $type = $this->remise_type ?? 'aucune';
+        if ($type === 'aucune' || $this->remise_montant_total <= 0) {
+            return 'Aucune remise';
+        }
+
+        $labels = [
+            'bourse_merite' => 'Bourse au mérite',
+            'bourse_sociale' => 'Bourse d\'aide sociale',
+            'remise_fratrie' => 'Remise fratrie',
+            'convention' => 'Convention partenaire',
+            'autre' => 'Remise exceptionnelle',
+        ];
+
+        $name = $labels[$type] ?? ucfirst(str_replace('_', ' ', $type));
+        return $name . ' (-' . number_format($this->remise_montant_total, 2, ',', ' ') . ' MAD)';
     }
 
     public function getTotalPayeAttribute(): float

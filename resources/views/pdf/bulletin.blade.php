@@ -209,15 +209,17 @@
     <!-- HEADER -->
     <div class="header">
         <div class="header-left">
-            <div class="school-name">Omnia Academy</div>
-            <div class="school-sub">Complexe Scolaire Privé – Excellence &amp; Innovation<br>
-                Tél: +212 5XX XX XX XX | contact@omnia-academy.ma | Rabat, Maroc
+            <div class="school-name">CLASSY-ONE ACADEMY</div>
+            <div class="school-sub">Complexe Scolaire &amp; Éducatif Privé d'Excellence<br>
+                Boulevard Al Qods, Casablanca | Tél: +212 5 22 80 90 00 | scolarite@classy-one.ma
             </div>
         </div>
         <div class="header-right">
             <div class="doc-title">Bulletin de Notes</div>
-            <div class="doc-subtitle">Semestre : {{ $semester }}<br>
-                Année scolaire : {{ $anneeScolaire ?? '2025/2026' }}
+            <div class="doc-subtitle">Semestre : {{ $semester ?? 'S1' }} | Année : {{ $anneeScolaire ?? '2025/2026' }}<br>
+                <span style="font-family: monospace; font-size: 10px; color: #047857; font-weight: bold;">
+                    RÉF : {{ $docRequest->reference ?? ('DOC-' . date('Y') . '-' . ($student->matricule ?? '00000')) }}
+                </span>
             </div>
         </div>
     </div>
@@ -329,8 +331,8 @@
     </div>
 
     <p class="generated-note">
-        Document généré électroniquement le {{ date('d/m/Y à H:i') }} par le portail Omnia Academy.<br>
-        Toute rature ou surcharge annule la validité du présent document.
+        Document officiel généré électroniquement le {{ date('d/m/Y à H:i') }} par le portail Classy-One Academy.<br>
+        Toute rature, surcharge ou altération annule la validité du présent document certifié.
     </p>
 
 </body>

@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\PaiementResource\Pages;
 
 use App\Filament\Resources\PaiementResource;
+use App\Services\PaymentService;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class CreatePaiement extends CreateRecord
 {
@@ -11,9 +13,6 @@ class CreatePaiement extends CreateRecord
 
     /**
      * Automatically inject Ann_id before saving a new payment.
-     * The paiement table requires Ann_id (Année scolaire / school year)
-     * but the form does not expose it, so we resolve it from the
-     * related Registre record and default to 1 if not found.
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
@@ -23,5 +22,13 @@ class CreatePaiement extends CreateRecord
         }
 
         return $data;
+    }
+
+    /**
+     * Wrap payment creation inside DB::transaction with audit logging & unique reference generator.
+     */
+    protected function handleRecordCreation(array $data): Model
+    {
+        return app(PaymentService::class)->recordPayment($data, auth()->user());
     }
 }

@@ -59,12 +59,40 @@ class StudentResource extends Resource
                             ->tel()
                             ->autocomplete('off')
                             ->maxLength(255),
+                        Forms\Components\TextInput::make('tuteur_name')
+                            ->label('Nom du tuteur (ولي الأمر)')
+                            ->placeholder('ex: Mohamed Alami')
+                            ->maxLength(255),
                         Forms\Components\TextInput::make('frais_scolarite')
-                            ->label('Frais de scolarité annuels')
+                            ->label('Frais de scolarité annuels (Tarif de base)')
                             ->numeric()
                             ->prefix('MAD')
                             ->default(15000.00)
                             ->required(),
+                        Forms\Components\Select::make('remise_type')
+                            ->label('Type de Bourse / Remise')
+                            ->options([
+                                'aucune' => 'Aucune remise (Tarif plein)',
+                                'bourse_merite' => 'Bourse au mérite',
+                                'bourse_sociale' => 'Bourse d\'aide sociale',
+                                'remise_fratrie' => 'Remise fratrie',
+                                'convention' => 'Convention partenaire',
+                                'autre' => 'Remise exceptionnelle',
+                            ])
+                            ->default('aucune')
+                            ->live(),
+                        Forms\Components\TextInput::make('remise_montant')
+                            ->label('Montant de la bourse / remise')
+                            ->numeric()
+                            ->prefix('MAD')
+                            ->default(0.00)
+                            ->helperText('Déduit automatiquement du total exigible.')
+                            ->visible(fn(Forms\Get $get) => $get('remise_type') !== 'aucune'),
+                        Forms\Components\TextInput::make('remise_motif')
+                            ->label('Motif ou dossier de la bourse / remise')
+                            ->placeholder('ex: N° dossier, décision de la commission...')
+                            ->visible(fn(Forms\Get $get) => $get('remise_type') !== 'aucune')
+                            ->columnSpanFull(),
                         Forms\Components\TextInput::make('password')
                             ->label('Mot de passe (Mobile App)')
                             ->password()
@@ -73,53 +101,7 @@ class StudentResource extends Resource
                             ->dehydrated(fn(?string $state) => filled($state))
                             ->required(fn(string $operation): bool => $operation === 'create')
                             ->helperText(fn(string $operation) => $operation === 'edit' ? 'Laissez vide pour conserver le mot de passe actuel.' : null),
-                        Forms\Components\TextInput::make('current_password_display')
-                            ->label('Mot de passe actuel (BDD)')
-                            ->prefixIcon('heroicon-o-key')
-                            ->readOnly()
-                            ->suffixAction(
-                                Forms\Components\Actions\Action::make('copyPassword')
-                                    ->icon('heroicon-m-clipboard-document')
-                                    ->tooltip('Copier le mot de passe')
-                                    ->action(function ($livewire, $state) {
-                                        $livewire->js('window.navigator.clipboard.writeText(' . json_encode($state) . ');');
-                                        if (empty($state) || str_contains($state, 'Crypté') || str_contains($state, 'Non défini')) {
-                                            \Filament\Notifications\Notification::make()
-                                                ->title('Mot de passe non disponible')
-                                                ->body('Veuillez saisir un nouveau mot de passe dans le champ ci-contre et enregistrer.')
-                                                ->warning()
-                                                ->send();
-                                            return;
-                                        }
-                                        \Filament\Notifications\Notification::make()
-                                            ->title('Mot de passe copié !')
-                                            ->success()
-                                            ->send();
-                                    })
-                            )
-                            ->dehydrated(false)
-                            ->visible(fn(string $operation): bool => $operation === 'edit')
-                            ->helperText("Mot de passe d'origine enregistré en BDD pour envoi à l'étudiant.")
-                            ->afterStateHydrated(function (Forms\Components\TextInput $component, ?Student $record) {
-                                if (!$record) {
-                                    $component->state('Non défini');
-                                    return;
-                                }
-                                $pwd = $record->password_plain;
-                                if (empty($pwd)) {
-                                    if (!empty($record->password) && !str_starts_with($record->password, '$2y$') && !str_starts_with($record->password, '$2a$')) {
-                                        $pwd = $record->password;
-                                    }
-                                }
-                                if (empty($pwd)) {
-                                    if (!empty($record->password)) {
-                                        $pwd = "•••••••• (Crypté en BDD)";
-                                    } else {
-                                        $pwd = 'Non défini';
-                                    }
-                                }
-                                $component->state($pwd);
-                            }),
+                        
                     ])->columns(2)
             ]);
     }
@@ -207,6 +189,9 @@ class StudentResource extends Resource
                                             ->placeholder('N/A'),
                                         TextEntry::make('numero_tuteur')
                                             ->label('NUMÉRO DU TUTEUR (ولي الأمر)')
+                                            ->placeholder('N/A'),
+                                        TextEntry::make('tuteur_name')
+                                            ->label('NOM DU TUTEUR (ولي الأمر)')
                                             ->placeholder('N/A'),
                                         TextEntry::make('classe.nomClasse')
                                             ->label('CLASSE')
@@ -343,6 +328,11 @@ class StudentResource extends Resource
                     ->label('Téléphone')
                     ->searchable()
                     ->placeholder('N/A'),
+                Tables\Columns\TextColumn::make('tuteur_name')
+                    ->label('Tuteur')
+                    ->searchable()
+                    ->toggleable()
+                    ->placeholder('N/A'),
 
                 Tables\Columns\TextColumn::make('classe.nomClasse')
                     ->label('Classe')
@@ -371,6 +361,11 @@ class StudentResource extends Resource
                             Reste: ' . number_format($reste, 2) . ' MAD (0%)
                         </span>';
                     }),
+                Tables\Columns\TextColumn::make('remise_label')
+                    ->label('Bourse / Remise')
+                    ->badge()
+                    ->color(fn($record) => ($record->remise_montant_total > 0) ? 'info' : 'gray')
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('classe.anneescolaire.libelle')
                     ->label('Année Scolaire')
                     ->toggleable(),
@@ -412,6 +407,32 @@ class StudentResource extends Resource
                                     ]),
                             ]),
                     ]),
+                Tables\Actions\Action::make('resetPassword')
+                    ->label('Réinitialiser MDP')
+                    ->icon('heroicon-o-key')
+                    ->color('warning')
+                    ->modalHeading("Réinitialisation du mot de passe")
+                    ->modalDescription("Définissez un nouveau mot de passe temporaire pour l'élève. Il sera immédiatement chiffré (bcrypt).")
+                    ->form([
+                        Forms\Components\TextInput::make('new_password')
+                            ->label('Nouveau mot de passe')
+                            ->password()
+                            ->revealable()
+                            ->required()
+                            ->minLength(6)
+                            ->default(fn() => 'Classy@' . rand(1000, 9999)),
+                    ])
+                    ->action(function (Student $record, array $data) {
+                        $record->password = \Illuminate\Support\Facades\Hash::make($data['new_password']);
+                        $record->save();
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Mot de passe réinitialisé !')
+                            ->body("Nouveau mot de passe temporaire pour {$record->nom} {$record->prenom} : {$data['new_password']}")
+                            ->success()
+                            ->persistent()
+                            ->send();
+                    }),
                 Tables\Actions\EditAction::make()
                     ->label('Modifier')
                     ->icon('heroicon-o-pencil'),

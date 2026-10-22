@@ -19,43 +19,35 @@ class AuthController extends Controller
         $student = Student::where('matricule', $validated['matricule'])->first();
 
         if (!$student) {
+            app(\App\Services\SuspiciousActivityService::class)->handleFailedLogin($validated['matricule'], $request->ip(), 'student');
             return response()->json([
                 'status' => 'error',
                 'message' => 'Matricule ou mot de passe incorrect'
             ], 401);
         }
 
-        // Check if the password is valid
+        // Secure password verification with auto-rehash for legacy plain passwords
         $passwordMatches = false;
 
-        // 1. Check plain text match first (safe against non-bcrypt values in DB)
-        if ($student->password === $validated['password'] || ($student->password_plain && $student->password_plain === $validated['password'])) {
+        if (password_verify($validated['password'], $student->password)) {
             $passwordMatches = true;
-            $student->password_plain = $validated['password'];
-
-            // Automatically upgrade plain-text password to bcrypt for future logins
-            if (!empty($student->password) && !str_starts_with($student->password, '$2y$') && !str_starts_with($student->password, '$2a$')) {
-                $student->password = Hash::make($validated['password']);
-            }
+        } elseif ($student->password === $validated['password']) {
+            // Legacy plain password detected: upgrade immediately to bcrypt
+            $passwordMatches = true;
+            $student->password = Hash::make($validated['password']);
             $student->save();
-        }
-        // 2. Fallback: Check bcrypt hash using native password_verify (never throws exception)
-        else if (!empty($student->password) && (str_starts_with($student->password, '$2y$') || str_starts_with($student->password, '$2a$'))) {
-            if (password_verify($validated['password'], $student->password)) {
-                $passwordMatches = true;
-                if (empty($student->password_plain)) {
-                    $student->password_plain = $validated['password'];
-                    $student->save();
-                }
-            }
         }
 
         if (!$passwordMatches) {
+            app(\App\Services\SuspiciousActivityService::class)->handleFailedLogin($validated['matricule'], $request->ip(), 'student');
             return response()->json([
                 'status' => 'error',
                 'message' => 'Matricule ou mot de passe incorrect'
             ], 401);
         }
+
+        // Reset failed login counter on success
+        app(\App\Services\SuspiciousActivityService::class)->handleSuccessfulLogin($validated['matricule'], $request->ip());
 
         // Revoke all existing tokens for the user to prevent multiple concurrent sessions
         $student->tokens()->delete();
@@ -96,7 +88,6 @@ class AuthController extends Controller
             'nom' => $validated['nom'],
             'prenom' => $validated['prenom'],
             'password' => Hash::make($validated['password']),
-            'password_plain' => $validated['password'],
             'telephone' => $validated['telephone'] ?? null,
             'fcmToken' => $validated['fcmToken'] ?? null,
         ]);

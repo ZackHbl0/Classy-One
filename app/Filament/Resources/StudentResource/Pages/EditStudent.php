@@ -21,7 +21,6 @@ class EditStudent extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         if (!empty($data['password'])) {
-            $data['password_plain'] = $data['password'];
             $data['password'] = Hash::make($data['password']);
         } else {
             unset($data['password']);

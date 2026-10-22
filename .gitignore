@@ -23,3 +23,7 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 app1-2b818-firebase-adminsdk-fbsvc-db0c0ac128.json
+firebase_credentials.json
+/storage/framework/views/*
+/storage/app/private/*
+scratch/

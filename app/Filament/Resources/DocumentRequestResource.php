@@ -3,16 +3,17 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\DocumentRequestResource\Pages;
-use App\Filament\Resources\DocumentRequestResource\RelationManagers;
 use App\Models\DocumentRequest;
-use App\Http\Controllers\DocumentPdfController;
+use App\Services\OfficialDocumentService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class DocumentRequestResource extends Resource
 {
@@ -20,13 +21,16 @@ class DocumentRequestResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        // Hide from professors - show only to admin/secretaire
-        return auth()->user()?->role !== 'professeur';
+        // Visible to admin, superadmin, secretaire
+        $role = auth()->user()?->role;
+        return in_array($role, ['admin', 'superadmin', 'secretaire', 'direction']);
     }
 
     protected static ?string $navigationIcon = 'heroicon-o-document-duplicate';
+    protected static ?string $navigationGroup = 'Scolarité & Documents';
     protected static ?string $modelLabel = 'Demande de Document';
     protected static ?string $pluralModelLabel = 'Demandes de Documents';
+    protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
     {
@@ -34,6 +38,10 @@ class DocumentRequestResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Détails de la Demande')
                     ->schema([
+                        Forms\Components\TextInput::make('reference')
+                            ->label('Réf. Unique')
+                            ->prefixIcon('heroicon-m-hashtag')
+                            ->disabled(),
                         Forms\Components\Select::make('idStudent')
                             ->label('Étudiant')
                             ->relationship('student', 'idStudent')
@@ -49,6 +57,7 @@ class DocumentRequestResource extends Resource
                         Forms\Components\TextInput::make('document_type')
                             ->label('Type de document')
                             ->prefixIcon('heroicon-m-document-text')
+                            ->formatStateUsing(fn(?DocumentRequest $record) => $record?->document_type_title ?? $record?->document_type)
                             ->disabled(),
                         Forms\Components\Select::make('urgency')
                             ->label('Urgence')
@@ -59,50 +68,57 @@ class DocumentRequestResource extends Resource
                             ->formatStateUsing(fn ($state) => strtolower($state ?? 'normal'))
                             ->disabled(),
                         Forms\Components\Select::make('status')
-                            ->label('Statut')
+                            ->label('Statut du document')
                             ->options([
-                                'pending' => 'En attente',
-                                'processing' => 'En cours',
-                                'ready' => 'Prêt',
-                                'rejected' => 'Rejeté',
+                                'nouveau' => 'Nouveau (En attente)',
+                                'en_cours' => 'En cours de traitement',
+                                'pret' => 'Prêt (Certifié & Disponible)',
+                                'rejete' => 'Rejeté',
                             ])
                             ->live()
                             ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                if ($state === 'ready' && empty($get('ready_date'))) {
+                                if (in_array($state, ['pret', 'ready']) && empty($get('ready_date'))) {
                                     $set('ready_date', now()->setTimezone('Africa/Casablanca')->format('Y-m-d H:i'));
                                 }
                             })
                             ->required(),
                         Forms\Components\DateTimePicker::make('request_date')
                             ->label('Date de demande')
-                            ->displayFormat('d/m/Y H:i:s')
+                            ->displayFormat('d/m/Y H:i')
                             ->timezone('Africa/Casablanca')
                             ->disabled(),
                         Forms\Components\DateTimePicker::make('ready_date')
-                            ->label('Date de disponibilité')
+                            ->label('Date de mise à disposition')
                             ->native(false)
                             ->displayFormat('d/m/Y H:i')
                             ->timezone('Africa/Casablanca')
-                            ->placeholder('Choisir la date où le document sera prêt')
-                            ->helperText('Définissez la date et l\'heure à partir de laquelle l\'étudiant peut récupérer son document.')
+                            ->helperText('Définissez la date et l\'heure à partir de laquelle le document est prêt.')
                             ->nullable(),
                         Forms\Components\Textarea::make('reason')
-                            ->label('Raison / Motif')
+                            ->label('Raison / Motif formulé par l\'élève ou parent')
                             ->disabled()
-                            ->maxLength(65535)
                             ->columnSpanFull(),
                     ])->columns(2),
-                Forms\Components\Section::make('Traitement Administratif')
+
+                Forms\Components\Section::make('Traitement & Fichier PDF Officiel')
                     ->schema([
                         Forms\Components\Textarea::make('admin_note')
-                            ->label('Message pour l\'étudiant (Optionnel)')
-                            ->placeholder('Ex: Votre document est prêt et peut être récupéré à la scolarité.')
+                            ->label('Note administrative / Message pour le demandeur')
+                            ->placeholder('Ex: Votre document a été généré et certifié. Vous pouvez le télécharger directement.')
+                            ->columnSpanFull(),
+                        Forms\Components\Textarea::make('rejection_reason')
+                            ->label('Motif de rejet (en cas de refus)')
+                            ->placeholder('Ex: Frais de scolarité non régularisés, dossier incomplet...')
+                            ->visible(fn(Forms\Get $get) => in_array($get('status'), ['rejete', 'rejected']))
                             ->columnSpanFull(),
                         Forms\Components\FileUpload::make('file_url')
-                            ->label('Joindre un document PDF (Optionnel)')
+                            ->label('Fichier PDF officiel attaché')
                             ->acceptedFileTypes(['application/pdf'])
-                            ->directory('documents/responses')
+                            ->disk('local')
+                            ->directory('documents/official')
+                            ->visibility('private')
                             ->downloadable()
+                            ->openable()
                             ->columnSpanFull(),
                     ])
             ]);
@@ -112,63 +128,76 @@ class DocumentRequestResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('reference')
+                    ->label('Réf. Unique')
+                    ->fontFamily('mono')
+                    ->weight('bold')
+                    ->badge()
+                    ->color('gray')
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('student.nom')
-                    ->label('Étudiant')
+                    ->label('Élève')
                     ->formatStateUsing(fn($record) => $record->student ? ($record->student->nom . ' ' . $record->student->prenom) : 'N/A')
+                    ->description(fn($record) => $record->student?->matricule)
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('applicant')
                     ->label('Demandeur')
-                    ->getStateUsing(fn(DocumentRequest $record) => $record->parent ? "Parent : {$record->parent->name}" : 'Étudiant')
+                    ->getStateUsing(fn(DocumentRequest $record) => $record->parent ? "Parent : {$record->parent->name}" : 'Élève')
                     ->badge()
                     ->color(fn(DocumentRequest $record) => $record->parent ? 'warning' : 'info')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('document_type')
-                    ->label('Type')
+                    ->label('Type de document')
+                    ->formatStateUsing(fn($record) => $record->document_type_title)
                     ->searchable(),
                 Tables\Columns\TextColumn::make('urgency')
                     ->label('Urgence')
                     ->badge()
                     ->color(fn(string $state): string => match (strtolower($state ?? 'normal')) {
-                        'normal' => 'info',
                         'urgent' => 'danger',
-                        default => 'gray',
+                        default => 'info',
                     })
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
                     ->label('Statut')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'pending' => 'gray',
-                        'processing' => 'warning',
-                        'ready' => 'success',
-                        'rejected' => 'danger',
-                        default => 'gray',
-                    })
+                    ->formatStateUsing(fn(DocumentRequest $record) => $record->status_label)
+                    ->color(fn(DocumentRequest $record) => $record->badge_color)
                     ->sortable(),
                 Tables\Columns\TextColumn::make('request_date')
                     ->label('Date demande')
                     ->dateTime('d/m/Y H:i', 'Africa/Casablanca')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('ready_date')
-                    ->label('Disponibilité')
-                    ->dateTime('d/m/Y H:i', 'Africa/Casablanca')
-                    ->placeholder('-')
-                    ->sortable(),
                 Tables\Columns\IconColumn::make('file_url')
-                    ->label('Document')
+                    ->label('PDF')
                     ->icon(fn(?string $state): string => $state ? 'heroicon-m-document-check' : 'heroicon-m-minus')
                     ->color(fn(?string $state): string => $state ? 'success' : 'gray'),
             ])
+            ->defaultSort('request_date', 'desc')
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
+                    ->label('Statut')
                     ->options([
-                        'pending' => 'En attente',
-                        'processing' => 'En cours',
-                        'ready' => 'Prêt',
-                        'rejected' => 'Rejeté',
-                    ]),
+                        'nouveau' => 'Nouveau (En attente)',
+                        'en_cours' => 'En cours',
+                        'pret' => 'Prêt',
+                        'rejete' => 'Rejeté',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $val = $data['value'] ?? null;
+                        if (!$val) return $query;
+                        return match ($val) {
+                            'nouveau' => $query->whereIn('status', ['nouveau', 'pending', 'new']),
+                            'en_cours' => $query->whereIn('status', ['en_cours', 'processing']),
+                            'pret' => $query->whereIn('status', ['pret', 'ready', 'approved']),
+                            'rejete' => $query->whereIn('status', ['rejete', 'rejected']),
+                            default => $query->where('status', $val),
+                        };
+                    }),
                 Tables\Filters\SelectFilter::make('urgency')
+                    ->label('Urgence')
                     ->options([
                         'normal' => 'Normale',
                         'urgent' => 'Urgente',
@@ -177,7 +206,7 @@ class DocumentRequestResource extends Resource
                     ->label('Demandé par')
                     ->options([
                         'parent' => 'Parents uniquement',
-                        'student' => 'Étudiants directement',
+                        'student' => 'Élèves directement',
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         if (($data['value'] ?? null) === 'parent') {
@@ -190,22 +219,75 @@ class DocumentRequestResource extends Resource
                     }),
             ])
             ->actions([
+                // 1. Action: Generate Official PDF
                 Tables\Actions\Action::make('generatePdf')
-                    ->label('Générer PDF')
-                    ->icon('heroicon-o-document-text')
+                    ->label('Générer PDF Officiel')
+                    ->icon('heroicon-o-sparkles')
                     ->color('success')
-                    ->visible(fn(DocumentRequest $record) => stripos($record->document_type ?? '', 'scolarit') !== false)
-                    ->action(function (DocumentRequest $record) {
-                        $controller = new DocumentPdfController();
-                        $controller->generateAndSave($record);
-                    })
                     ->requiresConfirmation()
-                    ->successNotificationTitle('PDF généré avec succès'),
+                    ->modalHeading('Génération du Document Officiel')
+                    ->modalDescription(fn(DocumentRequest $record) => "Confirmez-vous la génération et certification officielle du document {$record->document_type_title} pour {$record->student?->nom} {$record->student?->prenom} ?")
+                    ->action(function (DocumentRequest $record) {
+                        try {
+                            $service = app(OfficialDocumentService::class);
+                            $service->generate($record, auth()->user());
+
+                            Notification::make()
+                                ->title('Document officiel généré')
+                                ->body("Le document {$record->reference} a été généré, certifié et mis à disposition de l'élève.")
+                                ->success()
+                                ->send();
+                        } catch (\Throwable $e) {
+                            Notification::make()
+                                ->title('Erreur de génération')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+
+                // 2. Action: Download Ready PDF
+                Tables\Actions\Action::make('downloadPdf')
+                    ->label('Télécharger')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('info')
+                    ->visible(fn(DocumentRequest $record) => $record->isReady() && !empty($record->file_url))
+                    ->url(function (DocumentRequest $record) {
+                        return URL::temporarySignedRoute(
+                            'documents.signed_download',
+                            now()->addHours(2),
+                            ['id' => $record->id]
+                        );
+                    })
+                    ->openUrlInNewTab(),
+
+                // 3. Action: Reject request with note
+                Tables\Actions\Action::make('reject')
+                    ->label('Rejeter')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->visible(fn(DocumentRequest $record) => !$record->isRejected())
+                    ->form([
+                        Forms\Components\Textarea::make('rejection_reason')
+                            ->label('Motif du rejet (obligatoire)')
+                            ->required()
+                            ->placeholder('Ex: Dossier administratif incomplet, frais d\'inscription non acquittés...'),
+                    ])
+                    ->action(function (DocumentRequest $record, array $data) {
+                        $service = app(OfficialDocumentService::class);
+                        $service->reject($record, $data['rejection_reason'], auth()->user());
+
+                        Notification::make()
+                            ->title('Demande rejetée')
+                            ->body("La demande {$record->reference} a été rejetée avec notification transmise au demandeur.")
+                            ->warning()
+                            ->send();
+                    }),
+
+                // 4. Action: Standard Edit
                 Tables\Actions\EditAction::make()
-                    ->label('Répondre')
-                    ->icon('heroicon-o-chat-bubble-left-ellipsis')
-                    ->modalHeading('Répondre à la demande')
-                    ->modalSubmitActionLabel('Enregistrer'),
+                    ->label('Traiter')
+                    ->icon('heroicon-o-pencil-square'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

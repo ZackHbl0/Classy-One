@@ -29,6 +29,10 @@ class User extends Authenticatable implements FilamentUser
         'role',
         'classe_id',
         'matieres',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
+        'two_factor_confirmed_at',
+        'two_factor_enabled',
     ];
 
     protected static function booted(): void
@@ -52,6 +56,8 @@ class User extends Authenticatable implements FilamentUser
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     /**
@@ -66,7 +72,25 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
             'last_seen_at' => 'datetime',
             'matieres' => 'array',
+            'two_factor_enabled' => 'boolean',
+            'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Check if 2FA is active and confirmed for this user.
+     */
+    public function hasTwoFactorEnabled(): bool
+    {
+        return (bool) $this->two_factor_enabled && !empty($this->two_factor_secret) && !is_null($this->two_factor_confirmed_at);
+    }
+
+    /**
+     * Determine if user role requires or recommends 2FA.
+     */
+    public function isPrivilegedRole(): bool
+    {
+        return in_array($this->role, ['admin', 'secretaire']);
     }
 
     public function isOnline(): bool

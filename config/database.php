@@ -50,8 +50,8 @@ return [
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),
             'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
+            'username' => env('DB_APP_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('DB_APP_PASSWORD', env('DB_PASSWORD', '')),
             'unix_socket' => env('DB_SOCKET', ''),
             'charset' => env('DB_CHARSET', 'utf8mb4'),
             'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
@@ -62,6 +62,28 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+            'dump' => [
+                'dump_binary_path' => env('DB_DUMP_PATH', file_exists('C:\\laragon\\bin\\mysql\\mysql-8.4.3-winx64\\bin') ? 'C:\\laragon\\bin\\mysql\\mysql-8.4.3-winx64\\bin' : ''),
+                'use_single_transaction' => true,
+                'timeout' => 60 * 5,
+            ],
+        ],
+
+        'mysql_deployer' => [
+            'driver' => 'mysql',
+            'url' => env('DB_DEPLOY_URL'),
+            'host' => env('DB_DEPLOY_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('DB_DEPLOY_PORT', env('DB_PORT', '3306')),
+            'database' => env('DB_DATABASE', 'laravel'),
+            'username' => env('DB_DEPLOY_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('DB_DEPLOY_PASSWORD', env('DB_PASSWORD', '')),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
         ],
 
         'mariadb' => [

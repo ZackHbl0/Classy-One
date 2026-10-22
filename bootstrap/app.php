@@ -40,6 +40,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin-logout',
         ]);
 
+        // Append Security Headers globally
+        $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);
+
         // Register role middleware alias
         $middleware->alias([
             'admin'          => \App\Http\Middleware\EnsureUserIsAdmin::class,
@@ -49,5 +52,40 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Prevent database path and credentials leakage on SQL errors
+        $exceptions->render(function (\Illuminate\Database\QueryException $e, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Une erreur interne est survenue lors de l\'accès à la base de données.',
+                    'error_code' => 'DATABASE_ERROR',
+                ], 500);
+            }
+        });
+
+        $exceptions->render(function (\PDOException $e, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Erreur de connexion sécurisée aux services de données.',
+                    'error_code' => 'DATABASE_CONNECTION_ERROR',
+                ], 500);
+            }
+        });
+
+        // In production mode (when debug is off), NEVER leak stack traces or internal exception details
+        $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+            if (!config('app.debug') && ($request->is('api/*') || $request->expectsJson())) {
+                if ($e instanceof \Illuminate\Validation\ValidationException ||
+                    $e instanceof \Illuminate\Auth\AuthenticationException ||
+                    $e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
+                    return null; // Keep standard HTTP status codes
+                }
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Une erreur inattendue est survenue sur le serveur.',
+                ], 500);
+            }
+        });
     })->create();

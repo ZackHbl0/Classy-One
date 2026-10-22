@@ -15,7 +15,9 @@ class CreateCourse extends CreateRecord
 
         if ($user?->isProfesseur()) {
             $data['professor_id'] = $user->id;
-            $data['classe_id'] = $user->classe_id;
+            if (empty($data['classe_id'])) {
+                $data['classe_id'] = $user->classes->first()?->id ?? $user->classe_id;
+            }
         }
 
         return $data;

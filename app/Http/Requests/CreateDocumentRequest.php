@@ -13,6 +13,16 @@ class CreateDocumentRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('document_type') && !$this->has('documentType')) {
+            $this->merge(['documentType' => $this->input('document_type')]);
+        }
+        if ($this->has('documentType') && !$this->has('document_type')) {
+            $this->merge(['document_type' => $this->input('documentType')]);
+        }
+    }
+
     public function rules(): array
     {
         return [

@@ -33,14 +33,21 @@ class DummyStudentSeeder extends Seeder
             $class = $classes->first(); // Just assign them to the first available class
         }
 
+        $guardianFirstNames = ['Mohamed', 'Hassan', 'Brahim', 'Abdelkader', 'Omar', 'Rachid', 'Mustapha', 'Khalid', 'Youssef', 'Aziz'];
+
         // Generate 20 dummy students
         for ($i = 1; $i <= 20; $i++) {
+            $lastName = $faker->lastName;
+            $tuteurName = $guardianFirstNames[array_rand($guardianFirstNames)] . ' ' . $lastName;
+
             $student = Student::updateOrCreate(
                 ['matricule' => 'STUD' . str_pad($i, 3, '0', STR_PAD_LEFT)],
                 [
-                    'nom' => $faker->lastName,
+                    'nom' => $lastName,
                     'prenom' => $faker->firstName,
+                    'tuteur_name' => $tuteurName,
                     'telephone' => $faker->phoneNumber,
+                    'numero_tuteur' => '07' . str_pad(mt_rand(10000000, 99999999), 8, '0', STR_PAD_LEFT),
                     'password' => Hash::make('password'),
                     // Simulate a realistic FCM token length
                     'fcmToken' => Str::random(152), 

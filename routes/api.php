@@ -18,6 +18,11 @@ use App\Http\Controllers\Api\ProfessorController;
 use App\Http\Controllers\Api\ParentAuthController;
 use App\Http\Controllers\Api\ParentDashboardController;
 use App\Http\Controllers\Api\ParentDocumentController;
+use App\Http\Controllers\Api\PasswordResetController;
+use App\Http\Controllers\PaymentReceiptController;
+use App\Http\Controllers\Api\TwoFactorAuthController;
+use App\Http\Controllers\Api\SecuritySessionController;
+use App\Http\Controllers\Api\SecureFileStreamController;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,28 +32,62 @@ use App\Http\Controllers\Api\ParentDocumentController;
 |--------------------------------------------------------------------------
 */
 
-// ─── Public Authentication Routes (Strict Rate Limiting Applied) ─────
-Route::middleware('throttle:auth')->group(function () {
-    // Student Auth
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/register', [AuthController::class, 'register']);
+// ─── Public Authentication Routes (Strict Rate Limiting & Anti-Brute Force) ──
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth');
 
-    // Professor Auth
-    Route::post('/professor/login', [ProfessorController::class, 'login']);
+// Professor Auth
+Route::post('/professor/login', [ProfessorController::class, 'login'])->middleware('throttle:login');
 
-    // Parent Auth
-    Route::post('/parent/login', [ParentAuthController::class, 'login']);
-});
+// Staff Auth (Admin / Secretaire) with 2FA enforcement
+Route::post('/staff/login', [TwoFactorAuthController::class, 'staffLogin'])->middleware('throttle:login');
+
+// Parent Auth
+Route::post('/parent/login', [ParentAuthController::class, 'login'])->middleware('throttle:login');
+
+// Password Recovery Workflow (Throttled per minute)
+Route::post('/forgot-password', [PasswordResetController::class, 'forgotPassword'])->middleware('throttle:password-reset');
+Route::post('/verify-reset-code', [PasswordResetController::class, 'verifyCode'])->middleware('throttle:otp');
+Route::post('/reset-password', [PasswordResetController::class, 'resetPassword'])->middleware('throttle:password-reset');
+
+// Two-Factor Authentication Login Challenge Verification
+Route::post('/2fa/verify', [TwoFactorAuthController::class, 'challengeVerify'])->middleware('throttle:otp');
+
+// ─── Secure Media Streaming & Protected Documents (HMAC-Signed URLs) ─
+Route::get('/courses/stream/{course}/{filename?}', [CourseController::class, 'streamVideo'])->name('courses.stream');
+Route::get('/documents/types', [DocumentPdfController::class, 'types'])->name('documents.types');
+Route::get('/documents/{id}/signed-download', [DocumentPdfController::class, 'signedDownload'])->name('documents.signed_download');
+Route::get('/paiements/{id}/signed-receipt', [PaymentReceiptController::class, 'download'])->name('paiements.signed_receipt');
+Route::get('/secure/stream', [SecureFileStreamController::class, 'stream'])->middleware('signed')->name('secure.file.stream');
 
 // ─── Protected Routes (Requires Sanctum Token & Global API Rate Limit) ─
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
-    // General Auth
+    // General Auth & Common Secured Endpoints
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/paiements/{id}/receipt', [PaymentReceiptController::class, 'download']);
+    Route::get('/documents/{id}/download', [DocumentPdfController::class, 'download']);
+
+    // ─── Active Session & Device Management ────────────────────────────
+    Route::prefix('security')->group(function () {
+        Route::get('/sessions', [SecuritySessionController::class, 'index']);
+        Route::post('/logout-device/{tokenId}', [SecuritySessionController::class, 'logoutDevice']);
+        Route::post('/logout-other-devices', [SecuritySessionController::class, 'logoutOtherDevices']);
+        Route::post('/logout-all-devices', [SecuritySessionController::class, 'logoutAllDevices']);
+        Route::post('/logout-all', [SecuritySessionController::class, 'logoutAllDevices']);
+    });
+
+    // ─── Staff 2FA / TOTP Configuration ───────────────────────────────
+    Route::prefix('2fa')->group(function () {
+        Route::post('/setup', [TwoFactorAuthController::class, 'setup']);
+        Route::post('/confirm', [TwoFactorAuthController::class, 'confirm']);
+        Route::post('/disable', [TwoFactorAuthController::class, 'disable']);
+    });
 
     // ─── Admin / Staff Protected Operations ────────────────────────────
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/revenue', [DashboardController::class, 'revenue']);
+        Route::get('/financial-summary', [DashboardController::class, 'financialSummary']);
         Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
         Route::post('/test-notification', [NotificationController::class, 'sendTestPush']);
         Route::get('/test-push/{matricule}', [NotificationController::class, 'sendDirectPush']);
@@ -78,9 +117,10 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/student/absences/{id}/justify', [AbsenceController::class, 'justify']);
 
         // Documents
-        Route::post('/documents', [DocumentController::class, 'index']);
+        Route::match(['get', 'post'], '/documents', [DocumentController::class, 'index']);
+        Route::get('/documents/requests', [DocumentController::class, 'index']);
+        Route::post('/documents/requests', [DocumentController::class, 'store']);
         Route::post('/documents/create', [DocumentController::class, 'store']);
-        Route::get('/documents/{id}/download', [DocumentPdfController::class, 'download']);
 
         // Courses
         Route::post('/courses', [CourseController::class, 'index']);
@@ -116,6 +156,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/update-fcm-token', [ParentAuthController::class, 'updateFcmToken']);
         Route::match(['get', 'post'], '/dashboard', [ParentDashboardController::class, 'index']);
         Route::get('/children/{id}', [ParentDashboardController::class, 'childDetails']);
+        Route::get('/documents/types', [ParentDocumentController::class, 'types']);
         Route::get('/documents', [ParentDocumentController::class, 'index']);
         Route::post('/documents', [ParentDocumentController::class, 'store']);
         Route::get('/bulletin/{studentId}', [BulletinController::class, 'download']);

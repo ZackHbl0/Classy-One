@@ -15,6 +15,16 @@ Route::any('/admin-logout', [AdminLogoutController::class, 'logout'])
     ->middleware('web')
     ->name('admin.logout');
 
+// Payment Receipt PDF Download & Stream
+Route::get('/paiements/{id}/receipt', [\App\Http\Controllers\PaymentReceiptController::class, 'download'])
+    ->middleware('web')
+    ->name('paiements.receipt.download');
+
+// Strict interception: deny direct public access to sensitive uploads (certificates, official documents, courses)
+Route::get('/storage/certificates/{path?}', fn() => abort(403, 'Accès direct interdit aux documents sensibles.'))->where('path', '.*');
+Route::get('/storage/documents/{path?}', fn() => abort(403, 'Accès direct interdit aux documents sensibles.'))->where('path', '.*');
+Route::get('/storage/courses/{path?}', fn() => abort(403, 'Accès direct interdit aux cours sensibles.'))->where('path', '.*');
+
 // Deprecated chat routes (tables dropped)
 // Route::middleware('auth')->group(function () {
 //     Route::get('/web-chat/students', [\App\Http\Controllers\Api\MessageController::class, 'getChatStudents']);

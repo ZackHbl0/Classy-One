@@ -176,7 +176,6 @@ class Inscription extends Page implements HasForms
                 'telephone' => $data['telephone'],
                 'frais_scolarite' => $data['frais_scolarite'] ?? null,
                 'password' => Hash::make($data['password']),
-                'password_plain' => $data['password'],
             ]);
 
             Registre::create([

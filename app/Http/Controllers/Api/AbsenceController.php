@@ -58,6 +58,14 @@ class AbsenceController extends Controller
         $absence = $student->absences()->find($id);
 
         if (!$absence) {
+            $absenceExists = \App\Models\Absence::where('id', $id)->exists();
+            if ($absenceExists) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Accès refusé. Cette absence ne vous appartient pas.'
+                ], 403);
+            }
+
             return response()->json(['status' => 'error', 'message' => 'Absence introuvable'], 404);
         }
 
@@ -69,6 +77,8 @@ class AbsenceController extends Controller
             'student_explanation' => $request->input('reason'),
             'status' => 'submitted_by_student',
         ]);
+
+        Cache::forget('absences_' . $student->idStudent);
 
         return response()->json([
             'status' => 'success',

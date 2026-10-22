@@ -108,6 +108,11 @@ class FcmService
                     'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
                     'id' => (string) $notification->id,
                     'type' => $notification->categorie ?? 'Info',
+                    'categorie' => $notification->categorie ?? 'Info',
+                    'title' => (string) $notification->titre,
+                    'body' => (string) $notification->message,
+                    'url' => $notification->pieceJointe ? asset('storage/' . $notification->pieceJointe) : '',
+                    'piece_jointe' => $notification->pieceJointe ? asset('storage/' . $notification->pieceJointe) : '',
                 ])
                 ->withAndroidConfig([
                     'priority' => 'high',
@@ -168,6 +173,8 @@ class FcmService
                 ->withNotification(FirebaseNotification::create($title, $body))
                 ->withData(array_merge([
                     'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                    'title' => $title,
+                    'body' => $body,
                 ], $data))
                 ->withAndroidConfig([
                     'priority' => 'high',
